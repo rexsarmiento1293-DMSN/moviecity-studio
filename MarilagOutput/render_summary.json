@@ -1,0 +1,73 @@
+{
+  "status": "completed",
+  "base_name": "test_5s_maikli",
+  "title": "test 5s maikli",
+  "input": "uploads/test_5s.mp4",
+  "output": "MarilagOutput/test_5s_maikli_final.mp4",
+  "thumbnail": "MarilagOutput/test_5s_maikli_final.jpg",
+  "windows_style_output": "MarilagOutput\\test_5s_maikli_final.mp4",
+  "windows_style_thumbnail": "MarilagOutput\\test_5s_maikli_final.jpg",
+  "requested_segments": 24,
+  "segments": 5,
+  "workers": 4,
+  "detected_encoder": "libx264",
+  "has_audio": true,
+  "input_duration_sec": 5.0,
+  "output_duration_sec": 5.133,
+  "output_size_bytes": 159486,
+  "total_elapsed_sec": 3.693,
+  "completed_at": "2026-10-22T23:41:02Z",
+  "log_file": "MarilagOutput/render_progress.log",
+  "segment_results": [
+    {
+      "index": 0,
+      "success": true,
+      "elapsed_sec": 0.859,
+      "output_path": "/tmp/marilag_queue_jis179kb/rendered_segments/seg_000_rendered.mp4",
+      "size_bytes": 32144,
+      "encoder_used": "libx264",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "index": 1,
+      "success": true,
+      "elapsed_sec": 0.848,
+      "output_path": "/tmp/marilag_queue_jis179kb/rendered_segments/seg_001_rendered.mp4",
+      "size_bytes": 32733,
+      "encoder_used": "libx264",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "index": 2,
+      "success": true,
+      "elapsed_sec": 0.853,
+      "output_path": "/tmp/marilag_queue_jis179kb/rendered_segments/seg_002_rendered.mp4",
+      "size_bytes": 33516,
+      "encoder_used": "libx264",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "index": 3,
+      "success": true,
+      "elapsed_sec": 0.846,
+      "output_path": "/tmp/marilag_queue_jis179kb/rendered_segments/seg_003_rendered.mp4",
+      "size_bytes": 33572,
+      "encoder_used": "libx264",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "index": 4,
+      "success": true,
+      "elapsed_sec": 0.343,
+      "output_path": "/tmp/marilag_queue_jis179kb/rendered_segments/seg_004_rendered.mp4",
+      "size_bytes": 32887,
+      "encoder_used": "libx264",
+      "attempts": 1,
+      "error": null
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "3!2!1! Akzyon",
+    "slug": "321-akzyon-moviecity-studio",
+    "version": "1.0.0",
+    "sdkVersion": "58.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0c0c0e",
+    "primaryColor": "#ff3e3e",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.moviecity.studio",
+      "deploymentTarget": "16.4"
+    },
+    "android": {
+      "package": "com.moviecity.studio",
+      "versionCode": 1,
+      "compileSdkVersion": 37,
+      "targetSdkVersion": 36,
+      "minSdkVersion": 24,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_CONTACTS",
+        "android.permission.HIGH_SAMPLING_RATE_SENSORS",
+        "android.permission.INTERNET"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow 3!2!1! Akzyon to access your camera for live scene framing and storyboard reference capture."
+        }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Allow 3!2!1! Akzyon to access production cast & crew contacts for Character Profile Lock."
+        }
+      ],
+      [
+        "expo-sensors",
+        {
+          "motionPermission": "Allow 3!2!1! Akzyon to read the device gyroscope for real-time handheld camera motion tracking."
+        }
+      ]
+    ],
+    "extra": {
+      "engineId": "moviecityAI",
+      "cloudflareWorker": "flat-dream-15fc",
+      "r2Bucket": "movie-city-media",
+      "firebaseProjectId": "gen-lang-client-0597903520"
+    }
+  }
+}

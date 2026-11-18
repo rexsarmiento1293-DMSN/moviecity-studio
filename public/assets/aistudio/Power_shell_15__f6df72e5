@@ -1,0 +1,171 @@
+﻿powershell -Command "& {
+$base = 'C:\MarilagProject'
+New-Item -ItemType Directory -Force -Path $base | Out-Null
+New-Item -ItemType Directory -Force -Path \"$base\render-daemon\" | Out-Null
+New-Item -ItemType Directory -Force -Path \"$base\netflix-portal\" | Out-Null
+New-Item -ItemType Directory -Force -Path \"$base\asmr-stream\" | Out-Null
+New-Item -ItemType Directory -Force -Path \"$base\MarilagOutput\" | Out-Null
+
+
+# 1. docker-compose.yml
+@'
+services:
+  render-daemon:
+    build:
+      context: ./render-daemon
+    container_name: marilag-render-daemon
+    volumes:
+      - C:/MarilagProject/MarilagOutput:/app/output
+      - C:/MarilagProject/queue_cli.py:/app/queue_cli.py
+    ports:
+      - "8081:8081"
+    environment:
+      - OUTPUT_PATH=/app/output
+      - USE_NVENC=false
+  netflix-portal:
+    build:
+      context: ./netflix-portal
+    container_name: marilag-portal
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+  grafana:
+    image: grafana/grafana:latest
+    container_name: marilag-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=marilag123
+  asmr-stream:
+    build:
+      context: ./asmr-stream
+    container_name: marilag-asmr-stream
+    ports:
+      - "8082:8082"
+volumes:
+  grafana-data:
+'@ | Set-Content \"$base\docker-compose.yml\"
+
+
+# 2. FIRE_IT_UP.bat
+@'
+@echo off
+echo =====================================
+echo        MARILAG ONE-CLICK LAUNCHER
+echo =====================================
+cd /d C:\MarilagProject
+echo Building containers...
+docker compose build
+echo Starting services...
+docker compose up -d
+echo.
+echo KUNG WALANG ERROR:
+echo - Netflix Portal: http://localhost:8080
+echo - Grafana: http://localhost:3000 (admin / marilag123)
+echo - Render Daemon API: http://localhost:8081
+echo - ASMR Stream: http://localhost:8082
+pause
+'@ | Set-Content \"$base\FIRE_IT_UP.bat\"
+
+
+# 3. queue_cli.py
+@'
+import time
+import os
+import argparse
+OUTPUT_FOLDER = r"C:\MarilagProject\MarilagOutput"
+def run_test(duration=15):
+    print(f"MARILAG QUEUE CLI - {duration} SECOND TEST START")
+    if not os.path.exists(OUTPUT_FOLDER):
+        os.makedirs(OUTPUT_FOLDER)
+    for i in range(1, duration+1):
+        print(f"Step {i}/{duration}: Queue active...")
+        time.sleep(1)
+    print("TEST COMPLETE! NOTE: NO ACTUAL VIDEO ENCODING YET!")
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--sec", type=int, default=15)
+    args = parser.parse_args()
+    run_test(args.sec)
+'@ | Set-Content \"$base\queue_cli.py\"
+
+
+# 4. render-daemon files
+@'
+FROM python:3.11-slim
+WORKDIR /app
+RUN apt-get update && apt-get install -y ffmpeg
+COPY requirements.txt /app/
+RUN pip install -r requirements.txt
+COPY . /app/
+CMD ["python", "main.py"]
+'@ | Set-Content \"$base\render-daemon\Dockerfile\"
+
+
+@'
+flask
+requests
+'@ | Set-Content \"$base\render-daemon\requirements.txt\"
+
+
+@'
+from flask import Flask
+import os
+app = Flask(__name__)
+OUTPUT = os.getenv("OUTPUT_PATH","/app/output")
+@app.route("/")
+def home():
+    return f"Render Daemon OK! Output: {OUTPUT}"
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8081)
+'@ | Set-Content \"$base\render-daemon\main.py\"
+
+
+# 5. netflix-portal files
+@'
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt /app/
+RUN pip install -r requirements.txt
+COPY . /app/
+CMD ["python", "app.py"]
+'@ | Set-Content \"$base\netflix-portal\Dockerfile\"
+
+
+@'
+flask
+'@ | Set-Content \"$base\netflix-portal\requirements.txt\"
+
+
+@'
+from flask import Flask
+app = Flask(__name__)
+@app.route("/")
+def home():
+    return "<h1>MARILAG NETFLIX-STYLE PORTAL</h1><p>Placeholder pa lang - kailangan pa ng UI + video player!</p>"
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
+'@ | Set-Content \"$base\netflix-portal\app.py\"
+
+
+# 6. asmr-stream files
+@'
+FROM nginx:alpine
+WORKDIR /usr/share/nginx/html
+COPY index.html .
+EXPOSE 8082
+CMD ["nginx", "-g", "daemon off;"]
+'@ | Set-Content \"$base\asmr-stream\Dockerfile\"
+
+
+@'
+<h1>MARILAG ASMR / HLS STREAM PORTAL</h1>
+<p>Placeholder: Dito ilalagay ang HLS player - kailangan pa ng Nginx-RTMP o Shaka Packager!</p>
+'@ | Set-Content \"$base\asmr-stream\index.html\"
+
+
+Write-Host '✅ ALL FILES CREATED SUCCESSFULLY IN C:\MarilagProject' -ForegroundColor Green
+}”

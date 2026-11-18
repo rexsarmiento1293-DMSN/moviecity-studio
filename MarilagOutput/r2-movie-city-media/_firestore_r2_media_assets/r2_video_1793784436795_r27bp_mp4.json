@@ -1,0 +1,15 @@
+{
+  "id": "r2_video_1793784436795_r27bp_mp4",
+  "ownerId": "studio_e2e_user",
+  "projectId": "proj-default-1",
+  "r2Key": "video_1793784436795_r27bp.mp4",
+  "bucket": "movie-city-media",
+  "url": "/media/video_1793784436795_r27bp.mp4",
+  "mediaType": "video",
+  "prompt": "Generate a 4K cinematic ultra high definition realistic 3D video about A cinematic Filipino teleserye scene in Manila during heavy rain. Camera movement is smooth cinematic drone shot / slow panning, professional color grading, hyper-realistic textures, 60fps feel, studio-grade visual effects, dramatic lighting, Unreal Engine 5",
+  "contentType": "video/mp4",
+  "sizeBytes": 1924241,
+  "model": "ltx-video-2b-v0.9.5-colab",
+  "createdAtIso": "2026-11-04T09:27:16.804Z",
+  "firestoreClientError": null
+}

@@ -1,0 +1,15 @@
+{
+  "id": "r2_image_test_success",
+  "ownerId": "studio_e2e_user",
+  "projectId": "proj-default-1",
+  "r2Key": "test_success.png",
+  "bucket": "movie-city-media",
+  "url": "/media/test_success.png",
+  "mediaType": "image",
+  "prompt": "Verified E2E Storyboard Frame: Clara Montes in Manila Rain Noir (/media/test_success.png)",
+  "contentType": "image/png",
+  "sizeBytes": 110119,
+  "model": "gemini-3.1-flash-lite-image",
+  "createdAtIso": "2026-11-02T11:50:00.000Z",
+  "firestoreClientError": null
+}

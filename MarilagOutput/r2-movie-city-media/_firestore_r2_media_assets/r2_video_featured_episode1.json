@@ -1,0 +1,15 @@
+{
+  "id": "r2_video_featured_episode1",
+  "ownerId": "studio_e2e_user",
+  "projectId": "proj-default-1",
+  "r2Key": "video_akzyon_episode1.mp4",
+  "bucket": "movie-city-media",
+  "url": "/media/video_akzyon_episode1.mp4",
+  "mediaType": "video",
+  "prompt": "3!2!1! Akzyon Teleserye Episode 1: Huling Pangako sa Ulan — Clara Montes in Manila Rain Noir (6s Master Cut with Audio)",
+  "contentType": "video/mp4",
+  "sizeBytes": 262374,
+  "model": "gemini-omni-1.1-flash",
+  "createdAtIso": "2026-11-02T12:00:00.000Z",
+  "firestoreClientError": null
+}

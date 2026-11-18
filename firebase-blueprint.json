@@ -1,0 +1,173 @@
+{
+  "entities": {
+    "DramaProjectDoc": {
+      "title": "Drama Project Metadata",
+      "description": "Cloud-synced AI Drama Studio project metadata owned by an authenticated Firebase user.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the project owner (1..128 chars)."
+        },
+        "title": {
+          "type": "string",
+          "description": "Project title (1..120 chars)."
+        },
+        "prompt": {
+          "type": "string",
+          "description": "Main story prompt (1..2000 chars)."
+        },
+        "genre": {
+          "type": "string",
+          "description": "Genre label (1..80 chars)."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Draft", "Generating", "Done"],
+          "description": "Generation status."
+        },
+        "characterName": {
+          "type": "string",
+          "description": "Consistent character name (1..100 chars)."
+        },
+        "characterAppearance": {
+          "type": "string",
+          "description": "Consistent character appearance description (1..500 chars)."
+        },
+        "characterStyle": {
+          "type": "string",
+          "description": "Consistent visual style description (1..200 chars)."
+        },
+        "selectedEffect": {
+          "type": "string",
+          "description": "Selected visual preset ID (1..64 chars)."
+        },
+        "resolution": {
+          "type": "string",
+          "enum": ["480p", "720p", "1080p"],
+          "description": "Target export resolution."
+        },
+        "includeAudio": {
+          "type": "boolean",
+          "description": "Whether audio track is enabled."
+        },
+        "sceneCount": {
+          "type": "integer",
+          "description": "Total number of scenes in timeline (1..100)."
+        },
+        "totalDurationSec": {
+          "type": "integer",
+          "description": "Total timeline duration in seconds (1..3600)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "ownerId",
+        "title",
+        "prompt",
+        "genre",
+        "status",
+        "characterName",
+        "characterAppearance",
+        "characterStyle",
+        "selectedEffect",
+        "resolution",
+        "includeAudio",
+        "sceneCount",
+        "totalDurationSec",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "R2MediaAssetDoc": {
+      "title": "Cloudflare R2 Media Asset URL & Metadata",
+      "description": "Stores ONLY the Cloudflare R2 file URL (/media/:key) and metadata for generated images, videos, and music in bucket movie-city-media.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "User ID or studio_e2e_user (1..128 chars)."
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Associated project ID (1..128 chars)."
+        },
+        "r2Key": {
+          "type": "string",
+          "description": "Object key in Cloudflare R2 bucket movie-city-media (1..256 chars)."
+        },
+        "bucket": {
+          "type": "string",
+          "enum": ["movie-city-media"],
+          "description": "Cloudflare R2 bucket name."
+        },
+        "url": {
+          "type": "string",
+          "description": "Worker GET /media/:key URL (1..1024 chars, never raw base64 data)."
+        },
+        "mediaType": {
+          "type": "string",
+          "enum": ["image", "video", "music"],
+          "description": "Generated media category."
+        },
+        "prompt": {
+          "type": "string",
+          "description": "Generation prompt (1..2000 chars)."
+        },
+        "contentType": {
+          "type": "string",
+          "description": "MIME content type such as image/png, video/mp4, audio/wav (1..120 chars)."
+        },
+        "sizeBytes": {
+          "type": "integer",
+          "description": "Uploaded R2 object size in bytes (1..524288000)."
+        },
+        "model": {
+          "type": "string",
+          "description": "AI model identifier used for generation (1..120 chars)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        }
+      },
+      "required": [
+        "ownerId",
+        "projectId",
+        "r2Key",
+        "bucket",
+        "url",
+        "mediaType",
+        "prompt",
+        "contentType",
+        "sizeBytes",
+        "model",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/drama_projects/{projectId}": {
+      "schema": {
+        "$ref": "#/entities/DramaProjectDoc"
+      },
+      "description": "Top-level collection of user drama projects with strict ownerId isolation."
+    },
+    "/r2_media_assets/{assetId}": {
+      "schema": {
+        "$ref": "#/entities/R2MediaAssetDoc"
+      },
+      "description": "Top-level collection storing ONLY Cloudflare R2 URLs and metadata for generated images, videos, and music."
+    }
+  }
+}

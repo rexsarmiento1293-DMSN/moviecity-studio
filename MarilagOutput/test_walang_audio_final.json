@@ -1,0 +1,123 @@
+{
+  "status": "completed",
+  "base_name": "test_walang_audio",
+  "title": "test walang audio",
+  "input": "uploads/test_no_audio.mp4",
+  "output": "MarilagOutput/test_walang_audio_final.mp4",
+  "thumbnail": "MarilagOutput/test_walang_audio_final.jpg",
+  "windows_style_output": "MarilagOutput\\test_walang_audio_final.mp4",
+  "windows_style_thumbnail": "MarilagOutput\\test_walang_audio_final.jpg",
+  "requested_segments": 24,
+  "segments": 10,
+  "workers": 4,
+  "detected_encoder": "libx264",
+  "has_audio": false,
+  "input_duration_sec": 10.0,
+  "output_duration_sec": 10.0,
+  "output_size_bytes": 227448,
+  "total_elapsed_sec": 6.917,
+  "completed_at": "2026-10-22T23:40:59Z",
+  "log_file": "MarilagOutput/render_progress.log",
+  "segment_results": [
+    {
+      "index": 0,
+      "success": true,
+      "elapsed_sec": 0.816,
+      "output_path": "/tmp/marilag_queue_wed24ldv/rendered_segments/seg_000_rendered.mp4",
+      "size_bytes": 23416,
+      "encoder_used": "libx264",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "index": 1,
+      "success": true,
+      "elapsed_sec": 0.805,
+      "output_path": "/tmp/marilag_queue_wed24ldv/rendered_segments/seg_001_rendered.mp4",
+      "size_bytes": 22994,
+      "encoder_used": "libx264",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "index": 2,
+      "success": true,
+      "elapsed_sec": 0.725,
+      "output_path": "/tmp/marilag_queue_wed24ldv/rendered_segments/seg_002_rendered.mp4",
+      "size_bytes": 23787,
+      "encoder_used": "libx264",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "index": 3,
+      "success": true,
+      "elapsed_sec": 0.798,
+      "output_path": "/tmp/marilag_queue_wed24ldv/rendered_segments/seg_003_rendered.mp4",
+      "size_bytes": 23617,
+      "encoder_used": "libx264",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "index": 4,
+      "success": true,
+      "elapsed_sec": 0.974,
+      "output_path": "/tmp/marilag_queue_wed24ldv/rendered_segments/seg_004_rendered.mp4",
+      "size_bytes": 23130,
+      "encoder_used": "libx264",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "index": 5,
+      "success": true,
+      "elapsed_sec": 0.892,
+      "output_path": "/tmp/marilag_queue_wed24ldv/rendered_segments/seg_005_rendered.mp4",
+      "size_bytes": 23381,
+      "encoder_used": "libx264",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "index": 6,
+      "success": true,
+      "elapsed_sec": 0.902,
+      "output_path": "/tmp/marilag_queue_wed24ldv/rendered_segments/seg_006_rendered.mp4",
+      "size_bytes": 23544,
+      "encoder_used": "libx264",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "index": 7,
+      "success": true,
+      "elapsed_sec": 0.897,
+      "output_path": "/tmp/marilag_queue_wed24ldv/rendered_segments/seg_007_rendered.mp4",
+      "size_bytes": 23895,
+      "encoder_used": "libx264",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "index": 8,
+      "success": true,
+      "elapsed_sec": 0.412,
+      "output_path": "/tmp/marilag_queue_wed24ldv/rendered_segments/seg_008_rendered.mp4",
+      "size_bytes": 23384,
+      "encoder_used": "libx264",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "index": 9,
+      "success": true,
+      "elapsed_sec": 0.407,
+      "output_path": "/tmp/marilag_queue_wed24ldv/rendered_segments/seg_009_rendered.mp4",
+      "size_bytes": 23822,
+      "encoder_used": "libx264",
+      "attempts": 1,
+      "error": null
+    }
+  ]
+}

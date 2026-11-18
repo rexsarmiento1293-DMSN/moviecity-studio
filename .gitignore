@@ -1,0 +1,17 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env
+.env.*
+.env.local
+.env.*.local
+!.env.example
+.dev.vars
+.dev.vars.*
+wrangler.local.toml
+*.pem
+*.key
+service-account*.json

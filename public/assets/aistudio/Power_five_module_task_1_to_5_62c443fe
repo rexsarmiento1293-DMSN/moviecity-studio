@@ -1,0 +1,1201 @@
+﻿Handa na ang Nginx-RTMP setup sa [nginx-rtmp/](/workspace/nginx-rtmp). Tumatanggap ito ng publish sa `rtmp://localhost:1935/live/<key>` at nagsi-serve ng HLS sa `http://localhost:8081/hls/<key>.m3u8`.
+
+
+<render_file file_path="/workspace/artifacts/nginx-rtmp.zip" />
+
+
+## Start
+
+
+```bash
+cd nginx-rtmp
+docker compose up -d
+curl http://localhost:8081/
+```
+
+
+Image: `tiangolo/nginx-rtmp` (nginx 1.23.2 + nginx-rtmp-module). Fragment ay 2s, playlist ~10s, kaya **keyframe interval = 2 segundo**.
+
+
+## ffmpeg test stream
+
+
+Stream key `test`:
+
+
+```bash
+ffmpeg -re \
+  -f lavfi -i "testsrc2=size=1280x720:rate=30" \
+  -f lavfi -i "sine=frequency=440:sample_rate=48000" \
+  -c:v libx264 -preset veryfast -tune zerolatency \
+  -profile:v baseline -pix_fmt yuv420p \
+  -g 60 -keyint_min 60 -sc_threshold 0 -bf 0 \
+  -b:v 2500k -maxrate 2500k -bufsize 5000k \
+  -c:a aac -b:a 128k -ar 48000 -ac 2 \
+  -f flv rtmp://localhost:1935/live/test
+```
+
+
+O `./scripts/push-test.sh test`. Pagkalipas ng ~6s:
+
+
+```bash
+ffplay http://localhost:8081/hls/test.m3u8
+```
+
+
+## OBS
+
+
+| Setting | Value |
+|---|---|
+| Service | Custom |
+| Server | `rtmp://localhost:1935/live` |
+| Stream Key | `test` |
+| Keyframe interval | 2 seconds |
+
+
+Playback: `http://localhost:8081/hls/test.m3u8`
+
+
+Kailangan ng stream key. Ang huling bahagi ng RTMP URL ang pangalan ng `.m3u8` (`hls_nested off`, kaya hindi `/hls/<key>/index.m3u8`).
+
+
+`allow publish all` ito — huwag i-expose ang port 1935 sa public internet nang walang firewall o publish secret. Walang Docker sa environment na ito, kaya hindi ko na-boot ang container; i-run ang compose sa machine na may Docker.
+
+
+====================================         Grok project module.  ⬆️
+===================================
+
+
+
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LROS Stream - Netflix Style Portal</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- HLS.js for .m3u8 stream playback -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #141414;
+            color: #fff;
+            overflow-x: hidden;
+        }
+        /* Custom scrollbar hiding for horizontal rows */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .hero-vignette {
+            background: linear-gradient(77deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 40%, rgba(0,0,0,0) 80%),
+                        linear-gradient(180deg, rgba(20,20,20,0) 60%, rgba(20,20,20,0.8) 85%, #141414 100%);
+        }
+        .card-hover:hover {
+            transform: scale(1.08);
+            z-index: 50;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.8);
+        }
+        transition-gpu {
+            transform: translateZ(0);
+            backface-visibility: hidden;
+        }
+    </style>
+</head>
+<body class="bg-[#141414] text-white min-h-screen selection:bg-red-600 selection:text-white">
+
+
+    <!-- TOP NAVIGATION -->
+    <nav id="navbar" class="fixed top-0 left-0 right-0 z-40 transition-colors duration-500 bg-gradient-to-b from-black/80 via-black/40 to-transparent px-4 md:px-12 py-4 flex items-center justify-between">
+        <div class="flex items-center space-x-8">
+            <a href="#" class="text-red-600 font-extrabold text-2xl md:text-3xl tracking-wider">LROS STREAM</a>
+            <div class="hidden md:flex space-x-6 text-sm font-medium text-gray-300">
+                <a href="#" class="text-white hover:text-gray-400 transition">Home</a>
+                <a href="#" class="hover:text-gray-400 transition">TV Shows</a>
+                <a href="#" class="hover:text-gray-400 transition">Movies</a>
+                <a href="#" class="hover:text-gray-400 transition">New & Popular</a>
+                <a href="#" class="hover:text-gray-400 transition">My List</a>
+            </div>
+        </div>
+        <div class="flex items-center space-x-5 text-gray-300">
+            <div class="relative hidden sm:block">
+                <input type="text" placeholder="Titles, genres..." class="bg-black/60 border border-gray-700 text-sm rounded px-3 py-1.5 focus:outline-none focus:border-white w-48 transition-all focus:w-64 text-white">
+            </div>
+            <svg class="w-6 h-6 cursor-pointer hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+            <div class="flex items-center space-x-2 cursor-pointer group">
+                <div class="w-8 h-8 rounded bg-gradient-to-tr from-red-600 to-indigo-600 flex items-center justify-center font-bold text-sm">RX</div>
+                <svg class="w-4 h-4 group-hover:rotate-180 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+        </div>
+    </nav>
+
+
+    <!-- HERO BANNER -->
+    <header class="relative h-[85vh] md:h-[90vh] w-full flex items-end pb-24 px-4 md:px-12 hero-vignette">
+        <!-- Background SVG / Gradient Art representing movie poster without external images -->
+        <div class="absolute inset-0 -z-10 bg-gradient-to-tr from-zinc-950 via-red-950/40 to-indigo-950/50 flex items-center justify-center overflow-hidden">
+            <svg class="w-full h-full opacity-30 scale-125 blur-3xl" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <circle cx="20" cy="30" r="40" fill="#dc2626"/>
+                <circle cx="80" cy="70" r="35" fill="#4f46e5"/>
+            </svg>
+        </div>
+        
+        <div class="max-w-2xl z-10 space-y-4">
+            <div class="flex items-center space-x-2">
+                <span class="bg-red-600 text-xs font-bold px-2 py-0.5 rounded tracking-widest uppercase">LROS ORIGIN</span>
+                <span class="text-xs text-gray-400 font-semibold tracking-wider">VR v26.10 SERIES</span>
+            </div>
+            <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight drop-shadow-md">COMMANDER RE: AWAKENING</h1>
+            <p class="text-sm md:text-base text-gray-300 line-clamp-3 drop-shadow">
+                Operating in a zero-trust dimension across Bacoor and DeepSeek coordinates, an elite commander discovers a master core ledger that locks the system into immutable reality. Experience high-octane cyber action.
+            </p>
+            <div class="flex space-x-3 pt-2">
+                <button onclick="openPlayer('https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_adv_example/master.m3u8', 'Commander Re: Awakening (HLS Stream)', 'Cybernetic action thriller set in Zone 1293.')" class="flex items-center space-x-2 bg-white text-black font-semibold px-6 py-2.5 rounded hover:bg-gray-200 transition duration-200 shadow-lg">
+                    <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    <span>Play</span>
+                </button>
+                <button onclick="openPlayer('https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', 'Commander Re: Awakening - Special Feature', 'Behind the scenes of the zero-trust architecture.')" class="flex items-center space-x-2 bg-gray-600/80 text-white font-semibold px-6 py-2.5 rounded hover:bg-gray-600/60 transition duration-200 backdrop-blur-md">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>More Info</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+
+    <!-- CONTENT ROWS CONTAINER -->
+    <main class="relative z-20 pb-24 -mt-20 space-y-10">
+        
+        <!-- ROW 1: TRENDING NOW -->
+        <section class="space-y-3 px-4 md:px-12">
+            <h2 class="text-lg md:text-xl font-bold text-gray-200 tracking-wide">Trending Now</h2>
+            <div class="relative group">
+                <div id="row-1" class="flex space-x-4 overflow-x-auto no-scrollbar scroll-smooth py-4 px-1">
+                    <!-- Cards will be populated dynamically via JavaScript -->
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ROW 2: LROS CORE & SCI-FI -->
+        <section class="space-y-3 px-4 md:px-12">
+            <h2 class="text-lg md:text-xl font-bold text-gray-200 tracking-wide">LROS Core & Sci-Fi Thrillers</h2>
+            <div class="relative group">
+                <div id="row-2" class="flex space-x-4 overflow-x-auto no-scrollbar scroll-smooth py-4 px-1">
+                    <!-- Dynamic Cards -->
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ROW 3: ACTION & KINEMATICS -->
+        <section class="space-y-3 px-4 md:px-12">
+            <h2 class="text-lg md:text-xl font-bold text-gray-200 tracking-wide">Action & Quadruped Kinematics</h2>
+            <div class="relative group">
+                <div id="row-3" class="flex space-x-4 overflow-x-auto no-scrollbar scroll-smooth py-4 px-1">
+                    <!-- Dynamic Cards -->
+                </div>
+            </div>
+        </section>
+
+
+    </main>
+
+
+    <!-- VIDEO PLAYER MODAL -->
+    <div id="videoModal" class="fixed inset-0 z-50 bg-black/90 flex items-center justify-center hidden p-4 md:p-10">
+        <div class="relative w-full max-w-5xl bg-zinc-900 rounded-lg overflow-hidden shadow-2xl border border-zinc-800 flex flex-col">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between px-6 py-4 bg-zinc-950 border-b border-zinc-800">
+                <div>
+                    <h3 id="modalTitle" class="text-lg font-bold text-white">Streaming Video</h3>
+                    <p id="modalDesc" class="text-xs text-gray-400">Loading stream source...</p>
+                </div>
+                <button onclick="closePlayer()" class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-zinc-800 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <!-- Video Container -->
+            <div class="relative aspect-video bg-black flex items-center justify-center">
+                <video id="videoElement" controls autoplay class="w-full h-full object-contain"></video>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- FOOTER -->
+    <footer class="border-t border-zinc-800 px-4 md:px-12 py-12 text-gray-500 text-xs space-y-4">
+        <p>Questions? Contact LROS Command Support.</p>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <a href="#" class="hover:underline">FAQ</a>
+            <a href="#" class="hover:underline">Investor Relations</a>
+            <a href="#" class="hover:underline">Privacy</a>
+            <a href="#" class="hover:underline">Speed Test</a>
+            <a href="#" class="hover:underline">Help Center</a>
+            <a href="#" class="hover:underline">Jobs</a>
+            <a href="#" class="hover:underline">Cookie Preferences</a>
+            <a href="#" class="hover:underline">Legal Notices</a>
+        </div>
+        <p class="pt-4">&copy; 2026 LROS Streaming Portal. Zero-Trust Secure Architecture.</p>
+    </footer>
+
+
+    <!-- APPLICATION LOGIC -->
+    <script>
+        // Navbar scroll effect
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                nav.classList.add('bg-black');
+                nav.classList.remove('bg-gradient-to-b', 'from-black/80', 'via-black/40', 'to-transparent');
+            } else {
+                nav.classList.remove('bg-black');
+                nav.classList.add('bg-gradient-to-b', 'from-black/80', 'via-black/40', 'to-transparent');
+            }
+        });
+
+
+        // Mock Movie Data with mix of MP4 and HLS streams
+        const catalog = {
+            row1: [
+                { title: "HGABE SaaS Cloud", type: "HLS Stream", desc: "React 18 & Firebase Zero-Trust SaaS Architecture.", url: "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_adv_example/master.m3u8", colors: ["#7f1d1d", "#450a0a"] },
+                { title: "Moccasin PH Logistics", type: "MP4 Stream", desc: "Automated J&T waybills & inventory dispatch.", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4", colors: ["#1e3a8a", "#172554"] },
+                { title: "Zone 847 Quadruped", type: "HLS Stream", desc: "ESP32 dual-core kinematic gait engine simulation.", url: "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_adv_example/master.m3u8", colors: ["#14532d", "#052e16"] },
+                { title: "IAM Vault AI Blueprint", type: "MP4 Stream", desc: "Google AI Studio secure API gateway deployment.", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4", colors: ["#581c87", "#3b0764"] },
+                { title: "Balyena Dimension 1293", type: "MP4 Stream", desc: "DeepSeek dimensional exploration records.", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4", colors: ["#7c2d12", "#431407"] }
+            ],
+            row2: [
+                { title: "Gatekeeper Audit", type: "MP4 Stream", desc: "SHA-256 verification of Batas 02 & 04 protocols.", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4", colors: ["#312e81", "#1e1b4b"] },
+                { title: "Secret Manager Shield", type: "HLS Stream", desc: "Environment variable sealing without hardcoded secrets.", url: "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_adv_example/master.m3u8", colors: ["#831843", "#500724"] },
+                { title: "Bacoor Command Hub", type: "MP4 Stream", desc: "Live operations overview of Zone 1293.", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4", colors: ["#065f46", "#022c22"] },
+                { title: "React Recharts Analytics", type: "MP4 Stream", desc: "Real-time sales ticker and webhook statistics.", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4", colors: ["#9a3412", "#7c2d12"] },
+                { title: "Payload Ingestion", type: "MP4 Stream", desc: "Immutable diary embedding into Firestore.", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4", colors: ["#374151", "#1f2937"] }
+            ],
+            row3: [
+                { title: "Cycloidal Gait Engine", type: "HLS Stream", desc: "12-DOF inverse kinematics math visualization.", url: "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_adv_example/master.m3u8", colors: ["#111827", "#030712"] },
+                { title: "Battery Auto-Docking", type: "MP4 Stream", desc: "BMS sleep mode and power management protocols.", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4", colors: ["#164e63", "#083344"] },
+                { title: "I2S INMP441 Wake Word", type: "MP4 Stream", desc: "Audio integration ready for Commander Rex voice triggers.", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackSeeTheWorld.mp4", colors: ["#701a75", "#4a044e"] },
+                { title: "PayMongo Webhook Rate Limit", type: "MP4 Stream", desc: "IP-based DDoS defense simulation.", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4", colors: ["#14532d", "#064e3b"] },
+                { title: "Master Diary Lock", type: "MP4 Stream", desc: "Ensuring zero modifications post-deployment.", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4", colors: ["#451a03", "#292524"] }
+            ]
+        };
+
+
+        // Render Rows with SVG Thumbnail Generators (No External Images)
+        function renderRows() {
+            Object.keys(catalog).forEach(rowKey => {
+                const container = document.getElementById(rowKey);
+                if (!container) return;
+                container.innerHTML = catalog[rowKey].map((item, idx) => `
+                    <div onclick="openPlayer('${item.url}', '${item.title}', '${item.desc}')" class="flex-none w-56 md:w-64 aspect-video rounded-md bg-zinc-900 overflow-hidden cursor-pointer card-hover transition-all duration-300 relative group border border-zinc-800">
+                        <!-- Pure CSS & Inline SVG Thumbnail Art -->
+                        <div class="absolute inset-0 bg-gradient-to-br from-[${item.colors[0]}] to-[${item.colors[1]}] flex flex-col items-center justify-center p-4 text-center">
+                            <svg class="w-10 h-10 mb-2 text-white/80 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span class="text-xs font-bold text-red-400 tracking-wider uppercase">${item.type}</span>
+                            <h4 class="text-sm font-semibold text-white drop-shadow truncate w-full mt-1">${item.title}</h4>
+                        </div>
+                        <!-- Hover Card Overlay Details -->
+                        <div class="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end space-y-2">
+                            <span class="text-xs font-bold text-green-400">98% Match</span>
+                            <h4 class="text-sm font-bold text-white leading-tight">${item.title}</h4>
+                            <p class="text-[11px] text-gray-300 line-clamp-2">${item.desc}</p>
+                            <div class="flex items-center space-x-2 pt-1">
+                                <button class="w-7 h-7 rounded-full bg-white text-black flex items-center justify-center hover:bg-gray-200">
+                                    <svg class="w-4 h-4 fill-current ml-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                </button>
+                                <span class="text-[10px] text-zinc-400 font-medium">Click to Play</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            });
+        }
+
+
+        let hlsInstance = null;
+
+
+        // Open Player Modal and Handle HLS vs MP4
+        function openPlayer(url, title, desc) {
+            const modal = document.getElementById('videoModal');
+            const video = document.getElementById('videoElement');
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalDesc').innerText = desc;
+            
+            modal.classList.remove('hidden');
+
+
+            if (url.includes('.m3u8')) {
+                if (Hls.isSupported()) {
+                    if (hlsInstance) {
+                        hlsInstance.destroy();
+                    }
+                    hlsInstance = new Hls();
+                    hlsInstance.loadSource(url);
+                    hlsInstance.attachMedia(video);
+                    hlsInstance.on(Hls.Events.MANIFEST_PARSED, function() {
+                        video.play();
+                    });
+                } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                    video.src = url;
+                    video.addEventListener('loadedmetadata', function() {
+                        video.play();
+                    });
+                }
+            } else {
+                if (hlsInstance) {
+                    hlsInstance.destroy();
+                    hlsInstance = null;
+                }
+                video.src = url;
+                video.play();
+            }
+        }
+
+
+        // Close Player Modal and Stop Video
+        function closePlayer() {
+            const modal = document.getElementById('videoModal');
+            const video = document.getElementById('videoElement');
+            video.pause();
+            video.src = "";
+            if (hlsInstance) {
+                hlsInstance.destroy();
+                hlsInstance = null;
+            }
+            modal.classList.add('hidden');
+        }
+
+
+        // Initialize on load
+        window.onload = function() {
+            renderRows();
+        }
+    </script>
+</body>
+</html>
+```
+===========≈========================      Gemini Pro _ Module project⬆️
+===================================
+
+
+Ayos na ang render/queue_cli.py, Tol—kumpleto na ang 24-segment FFmpeg splitter, NVENC (h264_nveìnc) auto-detection na may libx264 fallback, parallel worker pool, concat merge papuntang Marilao Output/final.mp4, progress logging, at test command para sa test.mp4.
+Review the card below to connect Google Drive and select your paid API key for the app. Once enabled, I will complete the Marilag Render Queue Studio interface so you can browse source videos and save rendered MarilagOutput/final.mp4 outputs to Google Drive, with permission from the app's users, alongside the 3D render cluster visualizer and multimedia tools.
+Argon
+Ran for 29m 58s
+
+
+summarize_auto
+Action history
+chevron_right
+Here are key actions taken for the app:
+
+
+download
+Installed 5 packages
+edit
+Edited 11 files
+src/utils/renderQueueLogic.ts
+check_circle
+src/utils/renderQueueLogic.test.ts
+check_circle
+src/services/googleDriveAuth.ts
+check_circle
+server.ts
+check_circle
+package.json
+check_circle
+src/index.css
+check_circle
+src/components/RenderCluster3D.tsx
+check_circle
+src/components/AiMultimediaLab.tsx
+check_circle
+src/components/GoogleDriveSync.tsx
+check_circle
+src/App.tsx
+check_circle
+render/queue_cli.py
+check_circle
+build
+Built
+Prangkahan tayo, Tol—walang bolahan, walang fake output! Heto na ang kumpletong Marilag Render Queue Studio at ang buong render/queue_cli.py na tumatakbo gamit ang totoong ffmpeg at ffprobe sa server.
+1. Kumpletong render/queue_cli.py (True & Functional Execution)
+Nasa /render/queue_cli.py (at pwede ring kopyahin o i-download direkta mula sa UI) ang buong Python CLI script na may:
+(a) 24-Segment Video Splitting: Kinukuha ang eksaktong duration gamit ang ffprobe at hinahati ang source video (test.mp4 o kahit anong custom .mp4) sa 24 contiguous segments (seg_000_raw.mp4 hanggang seg_023_raw.mp4).
+(b) Auto-Detect NVENC (h264_nvenc) + Fallback sa libx264: Nagpapatakbo ng aktwal na hardware encode probe sa h264_nvenc; kapag walang NVIDIA GPU o libcuda sa environment, kusang lumilipat sa libx264 (-preset veryfast). May per-segment fallback din kung sakaling ma-hit ang concurrent NVENC session limit.
+(c) Parallel Segment Rendering: Gumagamit ng concurrent.futures.ThreadPoolExecutor para sabay-sabay i-render ang 24 segments.
+(d) Lossless Concat Merge sa MarilagOutput\final.mp4 (MarilagOutput/final.mp4): Pinagsasama-sama ang 24 rendered segments gamit ang ffmpeg -f concat -safe 0 -c copy -movflags +faststart.
+(e) Error Handling & Progress Logging: May retry mechanism bawat segment, exit-code/file-size validation, at real-time logging sa console, MarilagOutput/render_progress.log, at MarilagOutput/render_summary.json.
+Test Commands (test.mp4):
+code
+Bash
+# Auto-generate ng 12s test.mp4 (SMPTE bars + 440Hz audio) at i-render sa 24 segments:
+python3 render/queue_cli.py --input test.mp4 --generate-test --segments 24 --workers 4
+
+
+# Patakbuhin sa existing na test.mp4:
+python3 render/queue_cli.py --input test.mp4 --segments 24 --workers 4 --crf 23
+2. Full-Stack Application & Verified Features
+Render Queue Workbench (#queue): Live dispatcher na nagpapatakbo ng python3 render/queue_cli.py sa backend, 24-segment status matrix (#01–#24 na may time slice, render time, at KB size), side-by-side HTML5 video players para sa test.mp4 at MarilagOutput/final.mp4, at live viewer para sa MarilagOutput/render_progress.log at render/queue_cli.py.
+3D Render Cluster Visualizer (#cluster3d): Interactive Three.js 3D viewport na may 24-blade compute rack, copper cooling manifolds, axial turbines, exploded-view slider, camera presets, material finishes, at collapsible bottom control dock.
+AI Media Lab (#ailab): Server-side Gemini endpoints para sa High-Thinking pipeline optimization (gemini-4-argon with ThinkingLevel.HIGH), Video & Image understanding (gemini-4-argon na kayang mag-inspect direkta ng MarilagOutput/final.mp4), Image creation/editing (gemini-nano-banana-2.1 at gemini-3-pro-image na may 1K/2K/4K at 8 aspect ratios), Video generation & photo animation (gemini-omni-1.1-flash via Interactions API sa 16:9 at 9:16), TTS (gemini-3.8-flash-tts), at Real-Time Live Voice (gemini-3.8-live).
+Google Drive Sync (#drive): Official Sign in with Google authentication, Drive file browser/filter, direct upload ng MarilagOutput/final.mp4, at confirmation modal bago mag-overwrite o mag-delete ng file.
+3. Verification Summary
+Real FFmpeg Pipeline: Pinatakbo ang python3 render/queue_cli.py --input test.mp4 --generate-test --segments 24 --workers 4—nabuo ang test.mp4 (583.8 KB), nag-fallback nang malinis mula h264_nvenc papuntang libx264, na-render ang 24/24 segments nang parallel, at na-merge sa MarilagOutput/final.mp4 (488.1 KB, 12.29s).
+Unit Tests (tsx --test): Pasado ang 5/5 unit tests sa src/utils/renderQueueLogic.test.ts (segment slicing math, NVENC/libx264 selector, log parser, at CLI builder).
+Browser Verification (playwright-cli): Sinuri ang Render Queue, 3D Cluster, AI Media Lab, at Drive Sync sa 1440x900 desktop viewport na may 0 console errors; inayos ang requestRender() resize handler sa RenderCluster3D.tsx at single-line tab layout sa AiMultimediaLab.tsx.
+
+
+Google Drive has been connected
+
+
+
+
+
+
+
+
+===================================
+=            Gemini Argon Module projects ⬆️
+===================================
+
+
+
+
+
+
+TASK 1: Windows 11 — WSL2 + Docker Desktop + Python + FFmpeg — Hakbang-hakbang — PowerShell — Laptop 3 — Maam Sofia
+
+
+Copy Commander — eto maikling pero kumpleto — para sa laptop 3 — via Tailscale — personal account mo gaganap — hindi pagmamayari — security ng susi.
+
+
+Buksan PowerShell as Administrator — right click Start > Windows Terminal (Admin) > PowerShell
+
+
+1. WSL2 — Install
+Check Windows version — dapat 22H2 pataas
+winver
+
+
+Enable WSL + Virtual Machine Platform — isang command lang sa Win11
+wsl --install
+
+
+Kung may WSL na dati — update kernel
+wsl --update
+
+
+Set WSL2 as default
+wsl --set-default-version 2
+
+
+List distros — verify
+wsl --list --verbose
+
+
+Install Ubuntu — para sa MarilagFlix docker backend
+wsl --install -d Ubuntu-22.04
+
+
+Restart PC pagkatapos
+Restart-Computer
+Verify WSL2:
+wsl --status
+Dapat: Default Version: 2
+wsl --list --verbose
+Dapat: Ubuntu-22.04 Running 2
+2. Docker Desktop — WSL2 backend
+Option A — via winget — pinakamadali
+winget install -e --id Docker.DockerDesktop
+
+
+Option B — manual download — https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe
+Pagkatapos install — open Docker Desktop — Settings > General > Use WSL 2 based engine = ON
+Settings > Resources > WSL integration > Enable integration with Ubuntu-22.04 = ON
+
+
+Start Docker service — hintay 1-2 min mag start whale icon green
+Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+
+
+Verify
+docker --version
+docker compose version
+docker ps
+wsl -d Ubuntu-22.04 -e docker --version
+3. Python 3.11/3.12 — with PATH
+Install via winget — auto PATH
+winget install -e --id Python.Python.3.12
+
+
+Refresh PATH sa current session — hindi na kailangan restart terminal
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+python --version
+py --version
+
+
+Kung wala pa rin — manual add PATH
+Settings > System > About > Advanced system settings > Environment Variables > User > Path > New:
+C:\Users\MaamSofia\AppData\Local\Programs\Python\Python312\
+C:\Users\MaamSofia\AppData\Local\Programs\Python\Python312\Scripts\
+
+
+Upgrade pip
+python -m pip install --upgrade pip
+
+
+Verify
+python --version
+Dapat: Python 3.12.x
+4. FFmpeg — with PATH
+Option A — winget — auto PATH
+winget install -e --id Gyan.FFmpeg
+
+
+Option B — manual — pinaka-stable
+Download: https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip
+Extract to C:\ffmpeg
+
+
+Add to PATH — PowerShell admin
+$ffmpegPath = "C:\ffmpeg\bin"
+$currentPath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+if ($currentPath -notlike "$ffmpegPath") {
+  [System.Environment]::SetEnvironmentVariable("Path", $currentPath + ";$ffmpegPath", "Machine")
+}
+Refresh current session
+$env:Path += ";$ffmpegPath"
+
+
+Verify
+ffmpeg -version
+Dapat: ffmpeg version 7.x.x-essentials_build
+
+
+Check PATH
+where.exe ffmpeg
+where.exe ffprobe
+FINAL VERIFICATION — Isang bagsakan — copy-paste sa PowerShell — para sa meeting:
+Write-Host "= VERIFICATION — LAPTOP 3 — TAILSCALE — MAAM SOFIA =" -ForegroundColor Cyan
+wsl --status
+wsl --list --verbose
+docker --version
+docker compose version
+python --version
+pip --version
+ffmpeg -version
+ffprobe -version
+Write-Host "= ALL READY — MARILAGFLIX FIRE_IT_UP =" -ForegroundColor Green
+Expected output:
+Default Version: 2
+Ubuntu-22.04 Running 2
+Docker version 27.x.x
+Docker Compose version v2.x.x
+Python 3.12.x
+pip 24.x
+ffmpeg version 7.x.x
+Kung fail — quick fix:
+Docker not starting — restart WSL
+wsl --shutdown
+Open Docker Desktop ulit
+
+
+Python not found — restart terminal as Admin
+
+
+FFmpeg not found — restart PC — check PATH
+echo $env:Path | findstr ffmpeg
+Tapos diretso na:
+cd C:\MarilagFlix
+.\FIRE_IT_UP_MARILAGFLIX_ALL_IN_ONE.bat
+
+
+====================================           Meta Module_projects                       
+===================================
+
+
+# Docker Compose Setup: Prometheus + Node-Exporter + Grafana
+
+
+Narito ang kumpletong setup na may auto-provisioned datasource at dashboard.
+
+
+## 📁 Directory Structure
+
+
+```
+monitoring/
+├── docker-compose.yml
+├── prometheus/
+│   └── prometheus.yml
+└── grafana/
+    ├── provisioning/
+    │   ├── datasources/
+    │   │   └── datasource.yml
+    │   └── dashboards/
+    │       └── dashboard.yml
+    └── dashboards/
+        └── node-overview.json
+```
+
+
+---
+
+
+## 1️⃣ `docker-compose.yml`
+
+
+```yaml
+version: '3.8'
+
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring
+
+
+volumes:
+  prometheus_data:
+  grafana_data:
+
+
+networks:
+  monitoring:
+    driver: bridge
+```
+
+
+---
+
+
+## 2️⃣ `prometheus/prometheus.yml`
+
+
+```yaml
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          instance: 'host-machine'
+```
+
+
+---
+
+
+## 3️⃣ `grafana/provisioning/datasources/datasource.yml`
+
+
+```yaml
+apiVersion: 1
+
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: 15s
+```
+
+
+---
+
+
+## 4️⃣ `grafana/provisioning/dashboards/dashboard.yml`
+
+
+```yaml
+apiVersion: 1
+
+
+providers:
+  - name: 'default'
+    orgId: 1
+    folder: 'Infrastructure'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false
+```
+
+
+---
+
+
+## 5️⃣ `grafana/dashboards/node-overview.json`
+
+
+```json
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "100 - (avg by(instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+          "legendFormat": "CPU Usage %",
+          "refId": "A"
+        }
+      ],
+      "title": "CPU Usage",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes",
+          "legendFormat": "Used Memory",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "node_memory_MemTotal_bytes",
+          "legendFormat": "Total Memory",
+          "refId": "B"
+        }
+      ],
+      "title": "RAM Usage",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "node_filesystem_size_bytes{mountpoint=\"/\"} - node_filesystem_free_bytes{mountpoint=\"/\"}",
+          "legendFormat": "Used Disk (/)",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "node_filesystem_size_bytes{mountpoint=\"/\"}",
+          "legendFormat": "Total Disk (/)",
+          "refId": "B"
+        }
+      ],
+      "title": "Disk Usage",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["node-exporter", "infrastructure"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Node Overview - CPU, RAM, Disk",
+  "uid": "node-overview",
+  "version": 1,
+  "weekStart": ""
+}
+```
+
+
+---
+
+
+## 🚀 Paggamit
+
+
+```bash
+# I-create ang directory structure
+mkdir -p monitoring/prometheus monitoring/grafana/provisioning/datasources monitoring/grafana/provisioning/dashboards monitoring/grafana/dashboards
+
+
+# Ilagay ang files sa tamang lokasyon (gaya ng nasa structure sa taas)
+
+
+# Patakbuhin ang docker-compose
+cd monitoring
+docker-compose up -d
+
+
+# Tingnan ang logs
+docker-compose logs -f
+
+
+# I-stop
+docker-compose down
+```
+
+
+---
+
+
+## 📊 Access
+
+
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| **Grafana** | http://localhost:3000 | admin / admin123 |
+| **Prometheus** | http://localhost:9090 | - |
+| **Node Exporter** | http://localhost:9100/metrics | - |
+
+
+---
+
+
+## ✅ Mga Features
+
+
+- ✅ **Auto-provisioned datasource** - Prometheus na naka-setup sa Grafana
+- ✅ **Auto-provisioned dashboard** - May CPU, RAM, at Disk monitoring panels
+- ✅ **Persistent volumes** - Hindi mawawala ang data kahit i-restart
+- ✅ **Network isolation** - Lahat nasa iisang Docker network
+- ✅ **Auto-restart** - Kung may crash, automatic na magre-restart
+
+
+Pagkatapos patakbuhin, buksan ang http://localhost:3000 at makikita mo na agad ang dashboard na may CPU, RAM, at Disk metrics!
+
+
+
+
+===================================
+
+
+        Qwen module projects
+====≈==============================

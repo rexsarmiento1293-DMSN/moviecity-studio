@@ -1,0 +1,15 @@
+{
+  "id": "r2_image_clara_manila_noir",
+  "ownerId": "studio_e2e_user",
+  "projectId": "proj-default-1",
+  "r2Key": "image_clara_manila_noir.png",
+  "bucket": "movie-city-media",
+  "url": "/media/image_clara_manila_noir.png",
+  "mediaType": "image",
+  "prompt": "Cinematic Filipino teleserye heroine Clara Montes standing in Manila rain at night, neon reflections, 35mm film still",
+  "contentType": "image/png",
+  "sizeBytes": 110119,
+  "model": "gemini-3.1-flash-lite-image",
+  "createdAtIso": "2026-11-02T11:55:00.000Z",
+  "firestoreClientError": null
+}

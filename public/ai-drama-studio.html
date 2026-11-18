@@ -1,0 +1,1654 @@
+<!DOCTYPE html>
+<html lang="tl" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0d13" />
+  <link rel="manifest" href="/manifest.json" />
+  <title>3!2!1! Akzyon — Mobile-First Cinematic Story & LTX-Video 2B Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            studio: {
+              bg: '#0b0d13',
+              card: '#111622',
+              border: '#1e2638',
+              accent: '#e11d48'
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { overscroll-behavior-y: none; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #0b0d13;
+      color: #f1f5f9;
+      overflow-x: hidden;
+    }
+    html.light body {
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    button, select, input, textarea { min-height: 48px; }
+    button { user-select: none; -webkit-user-select: none; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col pb-24">
+
+  <!-- TOP HEADER -->
+  <header id="appHeader" class="sticky top-0 z-30 bg-[#0f131d]/95 backdrop-blur border-b border-slate-800/80 px-4 py-3">
+    <div class="max-w-6xl mx-auto flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="bg-red-600 text-white font-black text-xs sm:text-sm px-2.5 py-1.5 rounded-lg tracking-wider shrink-0 shadow-md shadow-red-600/20">
+          3!2!1
+        </div>
+        <div class="truncate">
+          <div class="flex items-center gap-2">
+            <span class="text-xs sm:text-sm font-bold truncate">3!2!1! Akzyon</span>
+            <span id="simBadge" class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              LTX-Video 2B Ready
+            </span>
+          </div>
+          <p id="welcomeSub" class="text-[11px] text-slate-400 truncate">Maligayang pagbabalik, Direk!</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button onclick="installPwaToPhone()" id="pwaInstallBtn" class="min-h-[48px] px-3 py-2 rounded-xl text-xs font-bold border border-emerald-500/40 bg-emerald-950/60 hover:bg-emerald-900/70 text-emerald-300">
+          📲 Install App
+        </button>
+        <button onclick="openCloudConfigModal()" class="min-h-[48px] px-3 py-2 rounded-xl text-xs font-semibold border border-sky-500/40 bg-slate-900 hover:bg-slate-800 text-sky-300">
+          ☁️ Cloud Config
+        </button>
+        <button onclick="openOnboarding()" class="min-h-[48px] px-3 py-2 rounded-xl text-xs font-semibold border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-200">
+          Gabay
+        </button>
+        <button onclick="openUpgradeModal()" class="min-h-[48px] px-3.5 py-2 bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-slate-950 font-black text-xs rounded-xl shadow-md">
+          👑 Upgrade
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- TOAST BANNER -->
+  <div id="toastBanner" class="hidden max-w-6xl mx-auto w-full px-4 pt-3">
+    <div class="bg-emerald-950/90 border border-emerald-700 text-emerald-200 px-4 py-3 rounded-2xl text-xs font-semibold flex items-center justify-between">
+      <span id="toastText"></span>
+      <button onclick="hideToast()" class="min-h-[36px] px-2 text-emerald-300 font-bold">✕</button>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 w-full max-w-6xl mx-auto px-4 py-5 space-y-6">
+
+    <!-- ==================== TAB 1: HOME ==================== -->
+    <section id="tab-home" class="space-y-6">
+      <div class="rounded-3xl p-5 sm:p-7 border border-red-900/40 bg-gradient-to-br from-red-950/60 via-slate-900 to-slate-950 shadow-xl">
+        <div class="max-w-2xl space-y-3">
+          <span class="inline-block text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-red-500/20 text-red-300 border border-red-500/30">
+            5-Step Cinematic Pipeline
+          </span>
+          <h1 class="text-xl sm:text-3xl font-black tracking-tight">
+            Gumawa ng Teleserye at AI Short Film sa Loob ng Ilang Segundo
+          </h1>
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            May Character Consistency Lock, Drag-and-Drop Scene Timeline, IndexedDB Video Combiner, at Export-Ready JSON.
+          </p>
+          <div class="flex flex-wrap gap-2.5 pt-2">
+            <button onclick="createNewProject()" class="min-h-[48px] px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-red-600/25">
+              ＋ Bagong Drama Project
+            </button>
+            <button onclick="switchTab('projects')" class="min-h-[48px] px-4 py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-semibold text-xs sm:text-sm rounded-xl">
+              📁 Buksan ang Gallery
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- LTX-VIDEO 2B v0.9.5 STUDIO & COLAB SECRETS (FAL_KEY + GEMINi_key) -->
+      <div class="rounded-3xl p-5 sm:p-6 border border-violet-500/40 bg-slate-900/80 space-y-4 shadow-xl">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="px-2.5 py-0.5 text-[10px] font-black uppercase rounded-md bg-violet-600 text-white">LTX-Video 2B v0.9.5</span>
+            <span class="px-2.5 py-0.5 text-[10px] font-bold uppercase rounded-md bg-emerald-950 text-emerald-300 border border-emerald-500/40">Colab Secrets: FAL_KEY & GEMINi_key</span>
+            <span class="px-2.5 py-0.5 text-[10px] font-bold uppercase rounded-md bg-amber-950 text-amber-300 border border-amber-500/40">Python 3.13 torchsde Fixed</span>
+          </div>
+          <a href="/api/ltx-video/colab-notebook" download="LTX_Video_2B_v0_9_5_Fixed_321_Akzyon.ipynb" class="min-h-[40px] px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center">
+            ⬇ Download Fixed .ipynb
+          </a>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <div class="lg:col-span-7 space-y-3">
+            <label class="block text-xs font-bold text-slate-300">LTX-Video 2B Detailed Prompt (768×512 • 73 Frames [n+1] • 24fps)</label>
+            <textarea id="ltxPromptInput" rows="3" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white">Cinematic Filipino teleserye dramatic confrontation in Manila rain at night, Clara Montes holding a secret letter under warm streetlamp glow, 35mm anamorphic lens, 24fps</textarea>
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="block text-[10px] text-slate-400 mb-1">Width × Height</label>
+                <select id="ltxResSelect" class="w-full px-2.5 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white">
+                  <option value="768x512" selected>768 × 512 (T4 Safe)</option>
+                  <option value="512x512">512 × 512 (Square)</option>
+                  <option value="640x384">640 × 384 (Fast)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[10px] text-slate-400 mb-1">Frames (8k + 1)</label>
+                <select id="ltxFramesSelect" class="w-full px-2.5 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white">
+                  <option value="73" selected>73 (72+1 • 3.0s)</option>
+                  <option value="97">97 (96+1 • 4.0s)</option>
+                  <option value="49">49 (48+1 • 2.0s)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[10px] text-slate-400 mb-1">Steps / CFG</label>
+                <input id="ltxStepsInput" type="text" value="30 steps • CFG 3.0" readonly class="w-full px-2.5 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-slate-300 font-mono" />
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button onclick="generateLtxVideoDirect()" id="ltxGenBtn" class="min-h-[48px] px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-black text-xs shadow-lg">
+                🎬 Generate LTX-Video 2B MP4 → /media/:key
+              </button>
+              <button onclick="copyColabSecretsSnippet()" class="min-h-[48px] px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 font-bold text-xs border border-slate-700">
+                🔑 Copy userdata.get('FAL_KEY' & 'GEMINi_key')
+              </button>
+            </div>
+          </div>
+
+          <div class="lg:col-span-5 rounded-2xl border border-slate-800 bg-slate-950 p-3 space-y-2">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="font-bold text-emerald-400">Verified R2 /media/:key Video Output</span>
+              <span id="ltxOutputBadge" class="font-mono text-slate-400">/media/video_akzyon_episode1.mp4</span>
+            </div>
+            <video id="ltxPreviewVideo" src="/media/video_akzyon_episode1.mp4" controls playsinline preload="metadata" class="w-full aspect-video rounded-xl bg-black border border-slate-800"></video>
+          </div>
+        </div>
+      </div>
+
+      <!-- RECENT PROJECTS (Last 4) -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-base sm:text-lg font-bold">Recent Projects (Huling 4)</h2>
+          <button onclick="switchTab('projects')" class="min-h-[44px] px-3 text-xs font-bold text-red-400 hover:text-red-300">
+            Tingnan Lahat →
+          </button>
+        </div>
+        <div id="recentProjectsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5"></div>
+      </div>
+
+      <!-- DRAMA INSPIRATION CARDS WITH WORKING "VIEW ALL" -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-base sm:text-lg font-bold">Drama Inspiration Templates</h2>
+            <p class="text-xs text-slate-400">Pumili ng template para awtomatikong mapunan ang Character Profile at Prompt</p>
+          </div>
+          <button onclick="openInspirationModal()" class="min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-bold border border-slate-700 bg-slate-900 hover:bg-slate-800">
+            View all (6)
+          </button>
+        </div>
+        <div id="homeInspirationGrid" class="grid grid-cols-1 sm:grid-cols-3 gap-3.5"></div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: PROJECTS GALLERY ==================== -->
+    <section id="tab-projects" class="hidden space-y-5">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 class="text-lg sm:text-2xl font-black">Projects Gallery</h1>
+          <p class="text-xs text-slate-400">Lahat ng iyong Draft, Generating, at Done na 3!2!1! Akzyon projects</p>
+        </div>
+        <button onclick="createNewProject()" class="min-h-[44px] px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl">
+          ＋ Bagong Project
+        </button>
+      </div>
+      <div id="allProjectsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </section>
+
+    <!-- ==================== TAB 3: STUDIO (GENERATION, TIMELINE, EXPORT) ==================== -->
+    <section id="tab-studio" class="hidden space-y-6">
+      <!-- 5-STEP GENERATION FLOW HEADER & PROGRESS BAR -->
+      <div class="rounded-2xl p-4 sm:p-5 border border-slate-800 bg-slate-900/60 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-red-400">Generation Flow</span>
+            <h2 id="studioProjectTitleHeader" class="text-base sm:text-lg font-black">Project</h2>
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-xs text-slate-400 flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" id="simulateFailToggle" class="w-4 h-4 accent-red-600" />
+              <span>Test Error / Retry</span>
+            </label>
+            <button onclick="runGenerationPipeline()" id="runGenBtn" class="min-h-[44px] px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl shadow-md">
+              ▶ Patakbuhin ang 5-Step AI Flow
+            </button>
+          </div>
+        </div>
+
+        <!-- Step Pills -->
+        <div id="stepPillsGrid" class="grid grid-cols-5 gap-1.5 sm:gap-2"></div>
+
+        <!-- Progress Bar + Remaining Time -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between text-xs">
+            <span id="genStatusText" class="text-slate-400 font-medium">Handa nang mag-generate</span>
+            <span id="genPercentText" class="font-mono font-bold">0% • ~0s remaining</span>
+          </div>
+          <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+            <div id="genProgressBar" class="h-full bg-gradient-to-r from-red-600 to-amber-500 transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- Error Banner with Retry -->
+        <div id="genErrorBox" class="hidden bg-red-950/80 border border-red-700 text-red-200 rounded-xl p-3.5 flex items-center justify-between gap-3">
+          <div class="text-xs">
+            <strong class="font-bold block">Generation Failed:</strong>
+            <span id="genErrorMsg">Nagkaroon ng error sa pagbuo ng eksena.</span>
+          </div>
+          <button onclick="retryGenerationPipeline()" class="min-h-[44px] px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl shrink-0">
+            ↻ Retry
+          </button>
+        </div>
+      </div>
+
+      <!-- TWO-COLUMN WORKSPACE: CHARACTER & PROMPT + PREVIEW PLAYER -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <!-- Left: Project & Character Profile -->
+        <div class="lg:col-span-6 rounded-2xl p-4 sm:p-5 border border-slate-800 bg-slate-900/60 space-y-4">
+          <h3 class="text-sm font-bold text-red-400">1. Prompt & Character Consistency Profile</h3>
+          <div>
+            <label class="block text-xs font-semibold mb-1 text-slate-400">Pamagat ng Project</label>
+            <input id="projTitleInput" type="text" oninput="syncCurrentProjectInputs()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-sm text-white" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold mb-1 text-slate-400">Master Story Prompt</label>
+            <textarea id="projPromptInput" rows="2" oninput="syncCurrentProjectInputs()" class="w-full px-3.5 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white"></textarea>
+          </div>
+
+          <div class="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-3">
+            <div class="text-xs font-bold text-amber-300">👤 Character Profile (Auto-injected sa bawat Scene Prompt)</div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <div>
+                <label class="block text-[11px] text-slate-400 mb-1">Pangalan (Name)</label>
+                <input id="charNameInput" type="text" oninput="syncCurrentProjectInputs()" class="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-950 text-xs text-white" />
+              </div>
+              <div>
+                <label class="block text-[11px] text-slate-400 mb-1">Itsura (Appearance)</label>
+                <input id="charAppearanceInput" type="text" oninput="syncCurrentProjectInputs()" class="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-950 text-xs text-white" />
+              </div>
+              <div>
+                <label class="block text-[11px] text-slate-400 mb-1">Style</label>
+                <input id="charStyleInput" type="text" oninput="syncCurrentProjectInputs()" class="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-950 text-xs text-white" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Preview Player & Scene-by-Scene View -->
+        <div class="lg:col-span-6 rounded-2xl p-4 sm:p-5 border border-slate-800 bg-slate-900/60 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-sky-400">2. Preview Player & Scene-by-Scene View</h3>
+            <span id="totalDurationBadge" class="text-xs font-mono text-slate-400">Total: 0s</span>
+          </div>
+
+          <div id="previewStage" class="aspect-video w-full rounded-xl overflow-hidden bg-black border border-slate-800 relative flex items-center justify-center">
+            <img id="scenePreviewImg" src="" alt="Scene Preview" class="w-full h-full object-cover" />
+            <video id="combinedVideoPlayer" controls class="hidden w-full h-full object-contain bg-black"></video>
+            <div id="sceneOverlayCaption" class="absolute bottom-2 left-2 right-2 bg-black/75 backdrop-blur px-3 py-2 rounded-lg text-xs text-white"></div>
+          </div>
+
+          <div id="sceneSelectorBar" class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1"></div>
+        </div>
+      </div>
+
+      <!-- SCENE LIST / TIMELINE (DRAG & DROP + ADD/EDIT/DELETE + COMBINE) -->
+      <div class="rounded-2xl p-4 sm:p-5 border border-slate-800 bg-slate-900/60 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 class="text-sm sm:text-base font-bold">3. Scene List / Timeline (Drag-and-Drop Reorder)</h3>
+            <p class="text-xs text-slate-400">I-drag ang scene card o gamitin ang ↑/↓ buttons. Awtomatikong isinasama ang Character Profile sa prompt.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="addNewScene()" class="min-h-[44px] px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl">
+              ＋ Magdagdag ng Scene
+            </button>
+            <button onclick="combineScenesIntoVideo()" id="combineBtn" class="min-h-[44px] px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black text-xs rounded-xl shadow-md">
+              🎞 Combine into one video (IndexedDB)
+            </button>
+          </div>
+        </div>
+
+        <div id="timelineScenesList" class="space-y-3"></div>
+      </div>
+
+      <!-- EXPORT / SHARE PANEL -->
+      <div class="rounded-2xl p-4 sm:p-5 border border-slate-800 bg-slate-900/60 space-y-4">
+        <h3 class="text-sm sm:text-base font-bold">4. Export / Share & JSON Structure</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Format</label>
+            <select id="exportFormatSelect" class="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white">
+              <option value="mp4">MP4 Video (.mp4)</option>
+              <option value="webm">WebM Video (.webm)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Resolution</label>
+            <select id="exportResSelect" class="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white">
+              <option value="480p">480p SD (Mobile Fast)</option>
+              <option value="720p" selected>720p HD (Standard)</option>
+              <option value="1080p">1080p Full HD (Cinema)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Audio Track</label>
+            <select id="exportAudioSelect" class="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white">
+              <option value="with">With Audio (Kasama ang Audio)</option>
+              <option value="without">Without Audio (Muted)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-2.5 pt-1">
+          <button onclick="downloadVideoExport()" class="min-h-[44px] px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl">
+            ⬇ Download Video
+          </button>
+          <button onclick="copyLocalShareLink()" class="min-h-[44px] px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold text-xs rounded-xl">
+            🔗 Copy Share Link
+          </button>
+          <button onclick="saveProjectManual()" class="min-h-[44px] px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold text-xs rounded-xl">
+            💾 Save Project
+          </button>
+          <button onclick="downloadExportJson()" class="min-h-[44px] px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-sky-400 font-bold text-xs rounded-xl">
+            { } Export-Ready JSON
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: TOOLS & VISUAL FX ==================== -->
+    <section id="tab-tools" class="hidden space-y-6">
+      <div>
+        <h1 class="text-lg sm:text-2xl font-black">AI Studio Tools & Visual Effects</h1>
+        <p class="text-xs text-slate-400">Malinaw na Video, Image, Visual Effects (pinalitan ang "Cool Me + FX"), at Story Writer modals.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <button onclick="openToolModal('video')" class="p-5 rounded-2xl border border-slate-800 bg-slate-900/70 hover:border-red-500/50 text-left space-y-2">
+          <div class="text-2xl">🎬</div>
+          <div class="text-sm font-bold">Video Camera Director</div>
+          <p class="text-xs text-slate-400">I-configure ang camera motion, pan, dolly zoom, at frame pacing.</p>
+        </button>
+        <button onclick="openToolModal('image')" class="p-5 rounded-2xl border border-slate-800 bg-slate-900/70 hover:border-sky-500/50 text-left space-y-2">
+          <div class="text-2xl">🖼️</div>
+          <div class="text-sm font-bold">Keyframe Image Lab</div>
+          <p class="text-xs text-slate-400">I-regenerate ang lahat ng scene thumbnails na may consistent character profile.</p>
+        </button>
+        <button onclick="openToolModal('effects')" class="p-5 rounded-2xl border border-slate-800 bg-slate-900/70 hover:border-amber-500/50 text-left space-y-2">
+          <div class="text-2xl">✨</div>
+          <div class="text-sm font-bold">Visual Effects Catalog</div>
+          <p class="text-xs text-slate-400">Malinaw na listahan ng cinematic effects na may description at live preview.</p>
+        </button>
+        <button onclick="openToolModal('writer')" class="p-5 rounded-2xl border border-slate-800 bg-slate-900/70 hover:border-emerald-500/50 text-left space-y-2">
+          <div class="text-2xl">✍️</div>
+          <div class="text-sm font-bold">AI Teleserye Story Writer</div>
+          <p class="text-xs text-slate-400">Awtomatikong bumuo ng 3 dramatic scenes mula sa iyong paksa.</p>
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 5: SETTINGS ==================== -->
+    <section id="tab-settings" class="hidden space-y-6 max-w-2xl">
+      <div>
+        <h1 class="text-lg sm:text-2xl font-black">Settings & Storage</h1>
+        <p class="text-xs text-slate-400">Pangalan ng user, theme, wika, API hook status, at pag-clear ng localStorage + IndexedDB.</p>
+      </div>
+
+      <div class="rounded-2xl p-5 border border-slate-800 bg-slate-900/60 space-y-4">
+        <div>
+          <label class="block text-xs font-bold mb-1">Pangalan ng User / Direktor</label>
+          <input id="settingsUserName" type="text" oninput="saveSettingsFromUI()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-sm text-white" />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold mb-1">Theme (Dark / Light)</label>
+            <select id="settingsTheme" onchange="saveSettingsFromUI()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-sm text-white">
+              <option value="dark">Dark Mode</option>
+              <option value="light">Light Mode</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">Wika (Language)</label>
+            <select id="settingsLang" onchange="saveSettingsFromUI()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-sm text-white">
+              <option value="fil">Filipino (Tagalog)</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold mb-1">Engine Provider (`generateWithAPI` Hook)</label>
+          <select id="settingsProvider" onchange="saveSettingsFromUI()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-sm text-white">
+            <option value="simulated">Simulated Local Pipeline (Instant & Free)</option>
+            <option value="runway">Runway Gen-3 Alpha Hook (via generateWithAPI)</option>
+            <option value="luma">Luma Dream Machine Hook (via generateWithAPI)</option>
+            <option value="flux">Flux.1 Cinema Keyframes Hook (via generateWithAPI)</option>
+          </select>
+          <p class="text-[11px] text-slate-400 mt-1">
+            Nakahanda ang <code>generateWithAPI()</code> function sa script para ikabit ang Runway/Luma/Flux server endpoint.
+          </p>
+        </div>
+
+        <div class="pt-3 border-t border-slate-800 flex items-center justify-between">
+          <div>
+            <div class="text-xs font-bold">LocalStorage Usage (Metadata & SVG Thumbnails Only)</div>
+            <div id="storageUsageLabel" class="text-xs text-slate-400 font-mono">0 KB ginagamit</div>
+          </div>
+          <button onclick="openClearDataConfirm()" class="min-h-[44px] px-4 py-2 bg-red-950 hover:bg-red-900 border border-red-700 text-red-200 font-bold text-xs rounded-xl">
+            🗑 Clear all data
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM NAVIGATION (5 TABS WITH CONSISTENT ACTIVE STATE) -->
+  <nav class="fixed bottom-0 left-0 right-0 z-30 bg-[#0f131d]/95 backdrop-blur border-t border-slate-800 px-2 py-1.5">
+    <div class="max-w-xl mx-auto grid grid-cols-5 gap-1">
+      <button onclick="switchTab('home')" id="nav-home" class="min-h-[48px] rounded-xl flex flex-col items-center justify-center text-[11px] font-bold">
+        <span>🏠</span><span>Home</span>
+      </button>
+      <button onclick="switchTab('projects')" id="nav-projects" class="min-h-[48px] rounded-xl flex flex-col items-center justify-center text-[11px] font-bold">
+        <span>📁</span><span>Projects</span>
+      </button>
+      <button onclick="switchTab('studio')" id="nav-studio" class="min-h-[48px] rounded-xl flex flex-col items-center justify-center text-[11px] font-bold">
+        <span>🎬</span><span>Studio</span>
+      </button>
+      <button onclick="switchTab('tools')" id="nav-tools" class="min-h-[48px] rounded-xl flex flex-col items-center justify-center text-[11px] font-bold">
+        <span>✨</span><span>Tools & FX</span>
+      </button>
+      <button onclick="switchTab('settings')" id="nav-settings" class="min-h-[48px] rounded-xl flex flex-col items-center justify-center text-[11px] font-bold">
+        <span>⚙️</span><span>Settings</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- DELETE PROJECT CONFIRM MODAL -->
+  <div id="deleteModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="max-w-sm w-full rounded-2xl bg-slate-900 border border-slate-700 p-5 space-y-4">
+      <h3 class="text-base font-bold text-white">Kumpirmahin ang Pagbura</h3>
+      <p class="text-xs text-slate-300">Sigurado ka bang gusto mong burahin ang project na ito? Hindi na ito maibabalik.</p>
+      <div class="flex justify-end gap-2">
+        <button onclick="closeDeleteModal()" class="min-h-[44px] px-4 py-2 rounded-xl bg-slate-800 text-xs font-semibold">Kanselahin</button>
+        <button onclick="confirmDeleteProject()" class="min-h-[44px] px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-bold">Oo, Burahin</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLEAR ALL DATA CONFIRM MODAL -->
+  <div id="clearDataModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="max-w-sm w-full rounded-2xl bg-slate-900 border border-red-700 p-5 space-y-4">
+      <h3 class="text-base font-bold text-white">Clear All LocalStorage & IndexedDB?</h3>
+      <p class="text-xs text-slate-300">Buburahin nito ang lahat ng iyong projects, settings, at combined videos.</p>
+      <div class="flex justify-end gap-2">
+        <button onclick="document.getElementById('clearDataModal').classList.add('hidden')" class="min-h-[44px] px-4 py-2 rounded-xl bg-slate-800 text-xs font-semibold">Kanselahin</button>
+        <button onclick="confirmClearAllData()" class="min-h-[44px] px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-bold">Oo, Clear All</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ONBOARDING 3-SLIDE MODAL WITH SKIP -->
+  <div id="onboardingModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="max-w-md w-full rounded-3xl bg-slate-900 border border-slate-700 p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <span id="onboardStepBadge" class="text-[11px] font-bold uppercase px-2.5 py-1 rounded-md bg-red-500/20 text-red-300">Slide 1 / 3</span>
+        <button onclick="closeOnboarding()" class="min-h-[44px] px-3 text-xs font-bold text-slate-400 hover:text-white">Skip ✕</button>
+      </div>
+      <h3 id="onboardTitle" class="text-lg font-black text-white"></h3>
+      <p id="onboardBody" class="text-xs sm:text-sm text-slate-300 leading-relaxed"></p>
+      <div class="flex items-center justify-between pt-2">
+        <button onclick="prevOnboardSlide()" id="onboardPrevBtn" class="min-h-[44px] px-4 py-2 rounded-xl bg-slate-800 text-xs font-bold">← Back</button>
+        <button onclick="nextOnboardSlide()" id="onboardNextBtn" class="min-h-[44px] px-5 py-2 rounded-xl bg-red-600 text-white text-xs font-bold">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPGRADE PREMIUM FEATURES MODAL -->
+  <div id="upgradeModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="max-w-md w-full rounded-3xl bg-slate-900 border border-amber-500/40 p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-black uppercase tracking-wider text-amber-400">👑 3!2!1! Akzyon Pro</span>
+        <button onclick="document.getElementById('upgradeModal').classList.add('hidden')" class="min-h-[44px] px-3 text-xs font-bold text-slate-400">✕</button>
+      </div>
+      <h3 class="text-lg font-black text-white">Listahan ng Premium Features</h3>
+      <ul class="space-y-2 text-xs text-slate-300">
+        <li>✓ <strong>Direct Cloud API Generation:</strong> Ikabit ang Runway Gen-3, Luma Dream Machine, at Flux Pro sa <code>generateWithAPI()</code>.</li>
+        <li>✓ <strong>4K Cinema Mastering & 60fps Interpolation:</strong> Walang watermark at ultra-sharp rendering.</li>
+        <li>✓ <strong>Multi-Character Voice Cloning & Tagalog Dubbing:</strong> Awtomatikong lip-sync at emosyonal na boses.</li>
+        <li>✓ <strong>Unlimited Cloud Scene Storage:</strong> Mag-save ng daan-daang eksena nang walang limitasyon.</li>
+      </ul>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="document.getElementById('upgradeModal').classList.add('hidden')" class="min-h-[44px] px-4 py-2 rounded-xl bg-slate-800 text-xs font-semibold">Mamaya Na</button>
+        <button onclick="proceedUpgrade()" class="min-h-[44px] px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 text-slate-950 font-black text-xs">Proceed to Pro</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW ALL DRAMA INSPIRATION MODAL -->
+  <div id="inspirationModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="max-w-3xl w-full max-h-[85vh] overflow-y-auto rounded-3xl bg-slate-900 border border-slate-700 p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base sm:text-lg font-black text-white">Lahat ng Drama Inspiration Templates</h3>
+        <button onclick="document.getElementById('inspirationModal').classList.add('hidden')" class="min-h-[44px] px-3 text-xs font-bold text-slate-400">Isara ✕</button>
+      </div>
+      <div id="allInspirationModalGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5"></div>
+    </div>
+  </div>
+
+  <!-- TOOL MODAL (VIDEO, IMAGE, VISUAL FX, STORY WRITER) -->
+  <div id="toolModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="max-w-xl w-full max-h-[85vh] overflow-y-auto rounded-3xl bg-slate-900 border border-slate-700 p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 id="toolModalTitle" class="text-base sm:text-lg font-black text-white">Tool</h3>
+        <button onclick="document.getElementById('toolModal').classList.add('hidden')" class="min-h-[48px] px-3 text-xs font-bold text-slate-400">Isara ✕</button>
+      </div>
+      <div id="toolModalBody" class="space-y-4"></div>
+    </div>
+  </div>
+
+  <!-- CLOUD & FIREBASE LIVE CONFIG MODAL -->
+  <div id="cloudConfigModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="max-w-lg w-full max-h-[88vh] overflow-y-auto rounded-3xl bg-slate-900 border border-sky-500/40 p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <span class="text-[10px] font-black uppercase tracking-wider text-sky-400">Runtime Cloud Configuration</span>
+          <h3 class="text-base sm:text-lg font-black text-white">Cloud & Firebase Live Settings</h3>
+        </div>
+        <button onclick="closeCloudConfigModal()" class="min-h-[48px] px-3 text-xs font-bold text-slate-400">✕</button>
+      </div>
+      <p class="text-xs text-slate-300">
+        I-paste o palitan ang iyong <code>firebaseConfig</code> JSON at Worker R2 Endpoint sa runtime nang hindi binabago ang source code.
+      </p>
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1">Firebase Config JSON (Optional Override)</label>
+        <textarea id="liveFirebaseConfigInput" rows="5" class="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-mono text-emerald-300" placeholder='{"projectId":"...","appId":"...","firestoreDatabaseId":"ai-studio-renderqueuecli-5fbac4b9-3101-4ff0-ae2b-807d128802d8"}'></textarea>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1">Cloudflare Worker / R2 Media Base URL</label>
+        <input id="liveWorkerUrlInput" type="text" class="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-mono text-white" placeholder="/media" value="/media" />
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeCloudConfigModal()" class="min-h-[48px] px-4 py-2 rounded-xl bg-slate-800 text-xs font-semibold">Isara</button>
+        <button onclick="saveCloudConfigModal()" class="min-h-[48px] px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-black text-xs">💾 Save Live Config</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================================
+    // DATA, CONSTANTS & LOCALSTORAGE / INDEXEDDB HELPERS
+    // ============================================================================
+    const LS_PROJECTS_KEY = 'ai_drama_studio_projects_v2';
+    const LS_SETTINGS_KEY = 'ai_drama_studio_settings_v2';
+    const LS_ONBOARD_KEY  = 'ai_drama_studio_onboarded_v2';
+
+    const VISUAL_EFFECT_PRESETS = [
+      { id: 'none', name: 'Natural Cinema (Walang Filter)', description: 'Malinis at natural na kulay para sa standard teleserye look.', cssFilter: 'none' },
+      { id: 'rain-noir', name: 'Manila Rain Noir', description: 'Madilim na contrast na may malamig na asul na anino para sa suspense.', cssFilter: 'contrast(1.25) saturate(0.75) brightness(0.92)' },
+      { id: 'golden-hour', name: 'Golden Hour Kilig', description: 'Mainit na kulay-ginto para sa romantikong pagtatagpo sa dapithapon.', cssFilter: 'sepia(0.28) saturate(1.4) brightness(1.05)' },
+      { id: 'neon-cyber', name: 'BGC Cyberpunk Glow', description: 'Matitingkad na magenta at cyan highlights para sa sci-fi drama.', cssFilter: 'saturate(1.75) contrast(1.18) hue-rotate(-12deg)' },
+      { id: 'vintage-90s', name: '90s Pelikula Film Grain', description: 'Klasikong 35mm analog film warmth na may malambot na highlights.', cssFilter: 'sepia(0.4) contrast(1.1) brightness(0.95)' }
+    ];
+
+    const DRAMA_INSPIRATIONS = [
+      { id: 'insp-1', title: 'Ang Lihim ng Lumang Mansyon', genre: 'Mystery / Family Drama', prompt: 'Natuklasan ni Clara ang lihim na talaarawan sa ilalim ng hagdan habang kumukulog.', charName: 'Clara Montecillo', charApp: 'Puting vintage lace dress, may hawak na kandila', charStyle: 'Gothic Filipino Cinema' },
+      { id: 'insp-2', title: 'Huling Tren sa Tutuban', genre: 'Romance / Melodrama', prompt: 'Nagpapaalam si Marco sa istasyon ng tren habang bumubuhos ang malakas na ulan.', charName: 'Marco Dalisay', charApp: 'Basang denim jacket, backpack, malungkot na mata', charStyle: 'Wong Kar-wai Warm Melodrama' },
+      { id: 'insp-3', title: 'Code Red: BGC Heist', genre: 'Action / Cyber Thriller', prompt: 'Sinisira ni Agent Zero ang firewall sa tuktok ng skyscraper bago dumating ang mga bantay.', charName: 'Agent Zero (Lia)', charApp: 'Tactical black leather jacket, neon visor', charStyle: 'Anamorphic Action Thriller' },
+      { id: 'insp-4', title: 'Kusina ni Lola Basyang', genre: 'Heartwarming / Slice of Life', prompt: 'Nagluluto ng mainit na sinigang para sa buong pamilya matapos ang mahabang bagyo.', charName: 'Chef Tomas', charApp: 'Linen apron, nakangiting mukha', charStyle: 'Warm Soft Daylight' },
+      { id: 'insp-5', title: 'Tagapagmana ng Imperyo', genre: 'Corporate Revenge', prompt: 'Pumasok sa boardroom ang tunay na tagapagmana bitbit ang ebidensya ng pandaraya.', charName: 'Victoria Salazar', charApp: 'Crimson power suit, gold earrings', charStyle: 'High-Contrast K-Drama' },
+      { id: 'insp-6', title: 'Bituin sa Dagat ng Siargao', genre: 'Coming of Age', prompt: 'Nakaupo sa dalampasigan habang pinagmamasdan ang paglubog ng araw at mga alon.', charName: 'Tala', charApp: 'Sun-kissed skin, woven surfboard', charStyle: '35mm Golden Hour Indie' }
+    ];
+
+    const ONBOARD_SLIDES = [
+      { title: '1. Gumawa ng Consistent Characters', body: 'Ilagay ang Pangalan, Itsura, at Style ng iyong bida sa Character Profile. Awtomatikong idinadagdag ito sa prompt ng bawat eksena para hindi nagbabago ang mukha at damit.' },
+      { title: '2. 5-Step Generation Flow & Timeline', body: 'Subaybayan ang malinaw na steps (Prompt → Script/Scenes → Images → Video Assembly → Final Output). I-drag ang mga eksena para i-reorder at pindutin ang "Combine into one video".' },
+      { title: '3. Magaan sa LocalStorage + IndexedDB Video', body: 'Metadata at magagaan na SVG thumbnails lang ang nasa localStorage. Ang malalaking video blobs ay naka-save sa IndexedDB at handa nang i-connect sa Runway/Luma/Flux gamit ang generateWithAPI().' }
+    ];
+
+    function makeSvgThumb(title, subtitle, colorHex = '#e11d48') {
+      const safeTitle = String(title || 'Scene').replace(/[<>&"']/g, '').slice(0, 28);
+      const safeSub = String(subtitle || '3!2!1! Akzyon').replace(/[<>&"']/g, '').slice(0, 36);
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#0f172a"/>
+            <stop offset="55%" stop-color="#1e1b4b"/>
+            <stop offset="100%" stop-color="${colorHex}"/>
+          </linearGradient>
+        </defs>
+        <rect width="640" height="360" fill="url(#g)"/>
+        <circle cx="520" cy="90" r="110" fill="rgba(255,255,255,0.06)"/>
+        <rect x="36" y="220" width="568" height="104" rx="16" fill="rgba(15,23,42,0.78)" stroke="rgba(255,255,255,0.15)"/>
+        <text x="58" y="264" fill="#ffffff" font-family="sans-serif" font-size="24" font-weight="bold">${safeTitle}</text>
+        <text x="58" y="298" fill="#cbd5e1" font-family="sans-serif" font-size="16">${safeSub}</text>
+      </svg>`;
+      return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    }
+
+    function buildCharacterConsistentPrompt(sceneText, character) {
+      return `[Character Lock: Name: ${character.name || 'Protagonist'} | Appearance: ${character.appearance || 'Cinematic lead'} | Style: ${character.style || 'Realistic Drama'}] Scene Action: ${sceneText}`;
+    }
+
+    /**
+     * Calls the backend POST /api/generate-video (Hugging Face Inference API text-to-video).
+     * Never exposes HF_TOKEN to the browser; reads HF_VIDEO_MODEL from server env.
+     */
+    async function generateWithAPI(payload) {
+      const updatedScenes = (payload.scenes || []).map((sc, i) => ({
+        ...sc,
+        promptWithCharacter: buildCharacterConsistentPrompt(sc.text || sc.scriptText || '', payload.character),
+        thumbnailDataUrl:
+          sc.thumbnailDataUrl ||
+          makeSvgThumb(
+            `Scene ${i + 1}: ${payload.projectTitle}`,
+            (sc.text || sc.scriptText || '').slice(0, 34),
+            i % 2 === 0 ? '#e11d48' : '#0284c7'
+          ),
+      }));
+
+      const response = await fetch('/api/generate-video', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'video/mp4, application/json',
+        },
+        body: JSON.stringify({
+          sceneText: payload.masterPrompt,
+          scenes: updatedScenes.map((sc, idx) => ({
+            id: sc.id || `sc-${idx + 1}`,
+            title: `Scene ${idx + 1}`,
+            scriptText: sc.text || sc.scriptText || payload.masterPrompt,
+            effectId: payload.effectId || 'manila-noir',
+            durationSec: sc.durationSec || 5,
+          })),
+          characterProfile: {
+            name: payload.character?.name || 'Protagonist',
+            appearance: payload.character?.appearance || 'Cinematic lead',
+            style: payload.character?.style || 'Realistic Drama',
+          },
+          effectId: payload.effectId || 'manila-noir',
+        }),
+      });
+
+      if (!response.ok) {
+        let errorMessage = `Nabigo ang POST /api/generate-video (HTTP ${response.status}).`;
+        try {
+          const errJson = await response.json();
+          if (errJson && errJson.error) {
+            errorMessage = errJson.error;
+          }
+        } catch (_e) {}
+        throw new Error(errorMessage);
+      }
+
+      const contentType = (response.headers.get('content-type') || '').toLowerCase();
+      const modelUsed = response.headers.get('x-hf-model') || 'Wan-AI/Wan2.1-T2V-14B';
+      let videoBlob = null;
+
+      if (contentType.includes('video/mp4') || contentType.includes('application/octet-stream')) {
+        videoBlob = await response.blob();
+      } else {
+        const jsonRes = await response.json();
+        if (jsonRes && jsonRes.videoUrl) {
+          const vidFetch = await fetch(jsonRes.videoUrl);
+          if (vidFetch.ok) {
+            videoBlob = await vidFetch.blob();
+          }
+        }
+      }
+
+      if (!videoBlob || videoBlob.size === 0) {
+        throw new Error('Walang natanggap na video/mp4 blob mula sa /api/generate-video.');
+      }
+
+      return {
+        success: true,
+        isSimulated: false,
+        modelUsed,
+        providerLabel: `Hugging Face Inference API (${modelUsed})`,
+        scenes: updatedScenes,
+        videoBlob,
+      };
+    }
+
+    // IndexedDB for storing Combined Video Blobs (keeps localStorage lightweight)
+    function openVideoDb() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open('AiDramaStudioVideoDB', 1);
+        req.onupgradeneeded = () => {
+          const db = req.result;
+          if (!db.objectStoreNames.contains('videos')) db.createObjectStore('videos');
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function saveBlobToIndexedDb(projectId, blob) {
+      const db = await openVideoDb();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('videos', 'readwrite');
+        tx.objectStore('videos').put(blob, projectId);
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function loadBlobFromIndexedDb(projectId) {
+      try {
+        const db = await openVideoDb();
+        return await new Promise((resolve, reject) => {
+          const tx = db.transaction('videos', 'readonly');
+          const req = tx.objectStore('videos').get(projectId);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => reject(req.error);
+        });
+      } catch (_e) {
+        return null;
+      }
+    }
+
+    // ============================================================================
+    // APPLICATION STATE
+    // ============================================================================
+    let projects = [];
+    let settings = { userName: 'Direk!', theme: 'dark', language: 'fil', provider: 'simulated' };
+    let activeProjectId = null;
+    let activeSceneIndex = 0;
+    let deleteTargetId = null;
+    let draggedSceneIndex = null;
+    let onboardIndex = 0;
+    let genSteps = ['Prompt', 'Script/Scenes', 'Images', 'Video Assembly', 'Final Output'];
+    let currentGenStep = -1;
+
+    function loadInitialState() {
+      try {
+        const rawP = localStorage.getItem(LS_PROJECTS_KEY);
+        if (rawP) {
+          const parsed = JSON.parse(rawP);
+          if (Array.isArray(parsed)) {
+            projects = parsed.map(p => ({
+              ...p,
+              character: p.character || p.characterProfile || {
+                name: 'Clara Montes',
+                appearance: '26yo Filipina lead, emerald dress',
+                style: '35mm Manila Noir',
+              },
+              scenes: Array.isArray(p.scenes)
+                ? p.scenes.map(sc => ({
+                    ...sc,
+                    text: sc.text || sc.scriptText || sc.title || 'Dramatic scene',
+                  }))
+                : [],
+            }));
+          }
+        }
+      } catch (e) {}
+
+      if (!projects || !projects.length) {
+        projects = [
+          {
+            id: 'proj-default-1',
+            title: 'Ang Huling Pahina sa Escolta',
+            updatedAt: '2026-05-12 19:30',
+            status: 'Done',
+            prompt: 'Isang imbestigador sa Maynila ang nakatuklas ng lihim na mensahe sa lumang sinehan.',
+            effectId: 'rain-noir',
+            character: { name: 'Kaelen Reyes', appearance: 'Itim na trench coat, pilak na salamin', style: '90s Manila Neo-Noir' },
+            scenes: [
+              { id: 's1', text: 'Naglalakad si Kaelen sa basang kalsada ng Escolta habang umiilaw ang neon sign.', durationSec: 5, thumbnailDataUrl: makeSvgThumb('Scene 1: Escolta Rain', 'Naglalakad si Kaelen sa ulan', '#e11d48') },
+              { id: 's2', text: 'Binuksan niya ang lumang pinto ng Capitol Theater at nakita ang film reel.', durationSec: 6, thumbnailDataUrl: makeSvgThumb('Scene 2: Capitol Theater', 'Nakita ang lumang film reel', '#0284c7') },
+              { id: 's3', text: 'Umikot ang projector at lumitaw ang mukha ng nawawalang saksi.', durationSec: 6, thumbnailDataUrl: makeSvgThumb('Scene 3: Projector Reveal', 'Lumitaw ang mukha ng saksi', '#7c3aed') }
+            ]
+          },
+          {
+            id: 'proj-default-2',
+            title: 'Tag-init sa La Union',
+            updatedAt: '2026-05-11 15:10',
+            status: 'Draft',
+            prompt: 'Dalawang musikero ang nagkakilala sa surfing camp bago ang malaking concert.',
+            effectId: 'golden-hour',
+            character: { name: 'Mira Solis', appearance: 'puting sundress, acoustic guitar', style: 'Golden Hour Indie Film' },
+            scenes: [
+              { id: 's21', text: 'Tumutugtog ng gitara si Mira sa tabi ng bonfire sa dalampasigan.', durationSec: 5, thumbnailDataUrl: makeSvgThumb('Scene 1: Bonfire Song', 'Tumutugtog ng gitara sa tabing-dagat', '#f59e0b') },
+              { id: 's22', text: 'Sabay nilang pinanood ang pagsikat ng araw habang may hawak na kape.', durationSec: 5, thumbnailDataUrl: makeSvgThumb('Scene 2: Sunrise Coffee', 'Pinanood ang pagsikat ng araw', '#ec4899') }
+            ]
+          }
+        ];
+        persistProjects();
+      }
+      activeProjectId = projects[0].id;
+
+      try {
+        const rawS = localStorage.getItem(LS_SETTINGS_KEY);
+        if (rawS) settings = { ...settings, ...JSON.parse(rawS) };
+      } catch (e) {}
+
+      applySettingsToDOM();
+
+      if (!localStorage.getItem(LS_ONBOARD_KEY)) {
+        openOnboarding();
+      }
+    }
+
+    function persistProjects() {
+      localStorage.setItem(LS_PROJECTS_KEY, JSON.stringify(projects));
+      updateStorageMeter();
+    }
+
+    function updateStorageMeter() {
+      let totalBytes = 0;
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k) totalBytes += (localStorage.getItem(k) || '').length * 2;
+      }
+      const kb = (totalBytes / 1024).toFixed(1);
+      const el = document.getElementById('storageUsageLabel');
+      if (el) el.textContent = `${kb} KB ginagamit sa localStorage (Videos nasa IndexedDB)`;
+    }
+
+    function showToast(msg) {
+      document.getElementById('toastText').textContent = msg;
+      document.getElementById('toastBanner').classList.remove('hidden');
+      setTimeout(hideToast, 3500);
+    }
+    function hideToast() {
+      document.getElementById('toastBanner').classList.add('hidden');
+    }
+
+    // ============================================================================
+    // NAVIGATION & RENDERERS
+    // ============================================================================
+    function switchTab(tab) {
+      ['home', 'projects', 'studio', 'tools', 'settings'].forEach(t => {
+        document.getElementById('tab-' + t).classList.toggle('hidden', t !== tab);
+        const btn = document.getElementById('nav-' + t);
+        if (t === tab) {
+          btn.className = 'min-h-[48px] rounded-xl flex flex-col items-center justify-center text-[11px] font-bold bg-red-600 text-white shadow-md';
+        } else {
+          btn.className = 'min-h-[48px] rounded-xl flex flex-col items-center justify-center text-[11px] font-bold text-slate-400 hover:text-white';
+        }
+      });
+      renderAll();
+    }
+
+    function getActiveProject() {
+      return projects.find(p => p.id === activeProjectId) || projects[0];
+    }
+
+    function statusBadgeHtml(status) {
+      if (status === 'Done') return '<span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Done</span>';
+      if (status === 'Generating') return '<span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30">Generating</span>';
+      return '<span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-slate-700 text-slate-300">Draft</span>';
+    }
+
+    function renderProjectCard(p) {
+      const thumb = (p.scenes && p.scenes[0] && p.scenes[0].thumbnailDataUrl) || makeSvgThumb(p.title, p.status);
+      return `
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/70 overflow-hidden flex flex-col justify-between">
+          <div>
+            <div class="aspect-video w-full bg-slate-950 relative">
+              <img src="${thumb}" alt="${p.title}" class="w-full h-full object-cover" />
+              <div class="absolute top-2 right-2">${statusBadgeHtml(p.status)}</div>
+            </div>
+            <div class="p-3.5 space-y-1">
+              <div class="font-bold text-sm truncate">${p.title}</div>
+              <div class="text-[11px] text-slate-400">${p.updatedAt} • ${p.scenes.length} scenes</div>
+            </div>
+          </div>
+          <div class="p-3 pt-0 grid grid-cols-3 gap-1.5">
+            <button onclick="editProject('${p.id}')" class="min-h-[40px] rounded-xl bg-red-600/90 hover:bg-red-500 text-white text-xs font-bold">Edit</button>
+            <button onclick="duplicateProject('${p.id}')" class="min-h-[40px] rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold">Duplicate</button>
+            <button onclick="askDeleteProject('${p.id}')" class="min-h-[40px] rounded-xl bg-slate-800 hover:bg-red-950 text-red-400 text-xs font-semibold">Delete</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAll() {
+      // Recent 4
+      const recentEl = document.getElementById('recentProjectsGrid');
+      if (projects.length === 0) {
+        recentEl.innerHTML = `<div class="col-span-full p-6 rounded-2xl border border-dashed border-slate-800 text-center text-xs text-slate-400">Wala pang project. Pindutin ang "Bagong Drama Project" para magsimula.</div>`;
+      } else {
+        recentEl.innerHTML = projects.slice(0, 4).map(renderProjectCard).join('');
+      }
+
+      // All projects gallery
+      const allEl = document.getElementById('allProjectsGrid');
+      if (projects.length === 0) {
+        allEl.innerHTML = `
+          <div class="col-span-full p-10 rounded-3xl border border-dashed border-slate-800 text-center space-y-3">
+            <div class="text-3xl">🎬</div>
+            <div class="text-base font-bold">Walang Project sa Gallery</div>
+            <p class="text-xs text-slate-400">Gumawa ng iyong unang 3!2!1! Akzyon project para makita ang timeline at preview.</p>
+            <button onclick="createNewProject()" class="min-h-[44px] px-5 py-2 bg-red-600 text-white text-xs font-bold rounded-xl">＋ Gumawa ng Unang Project</button>
+          </div>`;
+      } else {
+        allEl.innerHTML = projects.map(renderProjectCard).join('');
+      }
+
+      // Inspiration cards on Home
+      document.getElementById('homeInspirationGrid').innerHTML = DRAMA_INSPIRATIONS.slice(0, 3).map(item => `
+        <div class="p-4 rounded-2xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between space-y-3">
+          <div class="space-y-1">
+            <span class="text-[10px] font-bold uppercase text-amber-400">${item.genre}</span>
+            <h3 class="text-sm font-bold">${item.title}</h3>
+            <p class="text-xs text-slate-400">${item.prompt}</p>
+          </div>
+          <button onclick="useInspiration('${item.id}')" class="min-h-[44px] w-full rounded-xl bg-slate-800 hover:bg-red-600 text-white text-xs font-bold transition-colors">
+            Gamitin ang Template →
+          </button>
+        </div>
+      `).join('');
+
+      renderStudioWorkspace();
+      updateStorageMeter();
+    }
+
+    function renderStudioWorkspace() {
+      const p = getActiveProject();
+      if (!p) return;
+
+      document.getElementById('studioProjectTitleHeader').textContent = p.title;
+      document.getElementById('projTitleInput').value = p.title;
+      document.getElementById('projPromptInput').value = p.prompt;
+      document.getElementById('charNameInput').value = p.character.name;
+      document.getElementById('charAppearanceInput').value = p.character.appearance;
+      document.getElementById('charStyleInput').value = p.character.style;
+
+      // Step Pills
+      document.getElementById('stepPillsGrid').innerHTML = genSteps.map((st, idx) => {
+        const done = idx <= currentGenStep;
+        return `<div class="p-2 rounded-xl border text-center text-[11px] font-bold ${done ? 'bg-red-600/20 border-red-500 text-red-200' : 'bg-slate-950 border-slate-800 text-slate-400'}">${idx + 1}. ${st}</div>`;
+      }).join('');
+
+      // Total Duration & Preview
+      const totalSec = p.scenes.reduce((acc, s) => acc + (Number(s.durationSec) || 0), 0);
+      document.getElementById('totalDurationBadge').textContent = `Total: ${totalSec}s (${p.scenes.length} scenes)`;
+
+      if (activeSceneIndex >= p.scenes.length) activeSceneIndex = Math.max(0, p.scenes.length - 1);
+      const curScene = p.scenes[activeSceneIndex];
+      const preset = VISUAL_EFFECT_PRESETS.find(f => f.id === p.effectId) || VISUAL_EFFECT_PRESETS[0];
+
+      const imgEl = document.getElementById('scenePreviewImg');
+      const capEl = document.getElementById('sceneOverlayCaption');
+      if (curScene) {
+        imgEl.src = curScene.thumbnailDataUrl || makeSvgThumb(p.title, curScene.text);
+        imgEl.style.filter = preset.cssFilter;
+        capEl.textContent = `[Scene ${activeSceneIndex + 1} • ${curScene.durationSec}s] ${curScene.text}`;
+      }
+
+      // Scene Selector Bar
+      document.getElementById('sceneSelectorBar').innerHTML = p.scenes.map((sc, i) => `
+        <button onclick="selectScenePreview(${i})" class="min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 border ${i === activeSceneIndex ? 'bg-red-600 text-white border-red-500' : 'bg-slate-950 text-slate-400 border-slate-800'}">
+          Scene ${i + 1} (${sc.durationSec}s)
+        </button>
+      `).join('');
+
+      // Timeline List
+      document.getElementById('timelineScenesList').innerHTML = p.scenes.map((sc, i) => {
+        const fullPrompt = buildCharacterConsistentPrompt(sc.text, p.character);
+        return `
+          <div draggable="true" ondragstart="onSceneDragStart(${i})" ondragover="event.preventDefault()" ondrop="onSceneDrop(${i})"
+               class="p-3.5 rounded-2xl border border-slate-800 bg-slate-950/90 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <img src="${sc.thumbnailDataUrl}" alt="Scene ${i + 1}" class="w-28 h-16 object-cover rounded-xl border border-slate-800 shrink-0" style="filter:${preset.cssFilter}" />
+            <div class="flex-1 min-w-0 space-y-1.5 w-full">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-bold text-red-400">Scene #${i + 1} (Drag to Reorder)</span>
+                <div class="flex items-center gap-1">
+                  <button onclick="moveScene(${i}, -1)" class="min-h-[38px] px-2.5 rounded-lg bg-slate-800 text-xs">↑</button>
+                  <button onclick="moveScene(${i}, 1)" class="min-h-[38px] px-2.5 rounded-lg bg-slate-800 text-xs">↓</button>
+                  <button onclick="deleteScene(${i})" class="min-h-[38px] px-2.5 rounded-lg bg-red-950 text-red-300 text-xs">Delete</button>
+                </div>
+              </div>
+              <input type="text" value="${sc.text.replace(/"/g, '&quot;')}" oninput="updateSceneText(${i}, this.value)"
+                     class="w-full px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900 text-xs text-white" />
+              <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400">
+                <span class="truncate max-w-md">Prompt Lock: ${fullPrompt}</span>
+                <label class="flex items-center gap-1 shrink-0">
+                  <span>Duration (s):</span>
+                  <input type="number" min="1" max="30" value="${sc.durationSec}" onchange="updateSceneDuration(${i}, this.value)"
+                         class="w-16 px-2 py-1 rounded bg-slate-900 border border-slate-700 text-xs text-white" />
+                </label>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ============================================================================
+    // PROJECT & SCENE ACTIONS
+    // ============================================================================
+    function createNewProject() {
+      const id = 'proj-' + Date.now();
+      const newP = {
+        id,
+        title: 'Bagong AI Teleserye #' + (projects.length + 1),
+        updatedAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
+        status: 'Draft',
+        prompt: 'Isang dramatikong pagtatagpo sa gitna ng ulan.',
+        effectId: 'none',
+        character: { name: 'Aria Santos', appearance: 'Long black hair, red raincoat', style: 'Modern Filipino Cinema' },
+        scenes: [
+          { id: 'sc-' + Date.now(), text: 'Unang eksena sa ilalim ng poste ng ilaw.', durationSec: 5, thumbnailDataUrl: makeSvgThumb('Scene 1', 'Unang eksena sa ulan', '#e11d48') }
+        ]
+      };
+      projects.unshift(newP);
+      activeProjectId = id;
+      persistProjects();
+      switchTab('studio');
+      showToast('Nagawa ang bagong project!');
+    }
+
+    function editProject(id) {
+      activeProjectId = id;
+      activeSceneIndex = 0;
+      switchTab('studio');
+    }
+
+    function duplicateProject(id) {
+      const orig = projects.find(p => p.id === id);
+      if (!orig) return;
+      const copy = JSON.parse(JSON.stringify(orig));
+      copy.id = 'proj-copy-' + Date.now();
+      copy.title = orig.title + ' (Copy)';
+      copy.status = 'Draft';
+      projects.unshift(copy);
+      persistProjects();
+      renderAll();
+      showToast('Na-duplicate ang project!');
+    }
+
+    function askDeleteProject(id) {
+      deleteTargetId = id;
+      document.getElementById('deleteModal').classList.remove('hidden');
+    }
+    function closeDeleteModal() {
+      deleteTargetId = null;
+      document.getElementById('deleteModal').classList.add('hidden');
+    }
+    function confirmDeleteProject() {
+      if (!deleteTargetId) return;
+      projects = projects.filter(p => p.id !== deleteTargetId);
+      if (activeProjectId === deleteTargetId) {
+        activeProjectId = projects[0] ? projects[0].id : null;
+      }
+      persistProjects();
+      closeDeleteModal();
+      renderAll();
+      showToast('Nabura na ang project.');
+    }
+
+    function syncCurrentProjectInputs() {
+      const p = getActiveProject();
+      if (!p) return;
+      p.title = document.getElementById('projTitleInput').value;
+      p.prompt = document.getElementById('projPromptInput').value;
+      p.character.name = document.getElementById('charNameInput').value;
+      p.character.appearance = document.getElementById('charAppearanceInput').value;
+      p.character.style = document.getElementById('charStyleInput').value;
+      document.getElementById('studioProjectTitleHeader').textContent = p.title;
+      persistProjects();
+    }
+
+    function selectScenePreview(idx) {
+      activeSceneIndex = idx;
+      document.getElementById('combinedVideoPlayer').classList.add('hidden');
+      document.getElementById('scenePreviewImg').classList.remove('hidden');
+      renderStudioWorkspace();
+    }
+
+    function addNewScene() {
+      const p = getActiveProject();
+      if (!p) return;
+      const num = p.scenes.length + 1;
+      p.scenes.push({
+        id: 'sc-' + Date.now(),
+        text: `Bagong eksena #${num}: Dramatikong dialogue ni ${p.character.name}.`,
+        durationSec: 5,
+        thumbnailDataUrl: makeSvgThumb(`Scene ${num}`, `Eksena ni ${p.character.name}`, '#0284c7')
+      });
+      persistProjects();
+      renderStudioWorkspace();
+    }
+
+    function updateSceneText(idx, val) {
+      const p = getActiveProject();
+      if (!p || !p.scenes[idx]) return;
+      p.scenes[idx].text = val;
+      persistProjects();
+    }
+
+    function updateSceneDuration(idx, val) {
+      const p = getActiveProject();
+      if (!p || !p.scenes[idx]) return;
+      p.scenes[idx].durationSec = Math.max(1, Math.min(30, Number(val) || 5));
+      persistProjects();
+      renderStudioWorkspace();
+    }
+
+    function deleteScene(idx) {
+      const p = getActiveProject();
+      if (!p || p.scenes.length <= 1) {
+        showToast('Kailangan ng kahit 1 scene sa timeline.');
+        return;
+      }
+      p.scenes.splice(idx, 1);
+      persistProjects();
+      renderStudioWorkspace();
+    }
+
+    function moveScene(idx, dir) {
+      const p = getActiveProject();
+      if (!p) return;
+      const target = idx + dir;
+      if (target < 0 || target >= p.scenes.length) return;
+      const temp = p.scenes[idx];
+      p.scenes[idx] = p.scenes[target];
+      p.scenes[target] = temp;
+      persistProjects();
+      renderStudioWorkspace();
+    }
+
+    function onSceneDragStart(idx) { draggedSceneIndex = idx; }
+    function onSceneDrop(targetIdx) {
+      if (draggedSceneIndex === null || draggedSceneIndex === targetIdx) return;
+      const p = getActiveProject();
+      const item = p.scenes.splice(draggedSceneIndex, 1)[0];
+      p.scenes.splice(targetIdx, 0, item);
+      draggedSceneIndex = null;
+      persistProjects();
+      renderStudioWorkspace();
+    }
+
+    // ============================================================================
+    // 5-STEP GENERATION FLOW & RETRY (REAL HUGGING FACE /api/generate-video)
+    // ============================================================================
+    let currentVideoObjectUrl = null;
+
+    function bindVideoBlobToPlayer(blob) {
+      const videoEl = document.getElementById('combinedVideoPlayer');
+      const imgEl = document.getElementById('scenePreviewImg');
+      if (!videoEl || !blob) return;
+      if (currentVideoObjectUrl) {
+        try { URL.revokeObjectURL(currentVideoObjectUrl); } catch (_e) {}
+      }
+      currentVideoObjectUrl = URL.createObjectURL(blob);
+      videoEl.src = currentVideoObjectUrl;
+      videoEl.classList.remove('hidden');
+      if (imgEl) imgEl.classList.add('hidden');
+      videoEl.play().catch(() => {});
+    }
+
+    async function runGenerationPipeline() {
+      const p = getActiveProject();
+      if (!p) return;
+      document.getElementById('genErrorBox').classList.add('hidden');
+      p.status = 'Generating';
+      persistProjects();
+
+      const shouldFail = document.getElementById('simulateFailToggle').checked;
+
+      try {
+        for (let step = 0; step < genSteps.length; step++) {
+          currentGenStep = step;
+          const pct = Math.round(((step + 1) / genSteps.length) * 100);
+          const rem = (genSteps.length - (step + 1)) * 2;
+          document.getElementById('genStatusText').textContent = `Step ${step + 1}/5: ${genSteps[step]}...`;
+          document.getElementById('genPercentText').textContent = `${pct}% • ~${rem}s remaining`;
+          document.getElementById('genProgressBar').style.width = pct + '%';
+          renderStudioWorkspace();
+
+          await new Promise(r => setTimeout(r, 320));
+
+          if (shouldFail && step === 2) {
+            throw new Error('Nabigo sa Step 3 (Images) dahil naka-on ang Test Error toggle. Pindutin ang Retry.');
+          }
+
+          // Step 4 (index 3: Video Assembly) calls POST /api/generate-video
+          if (step === 3) {
+            document.getElementById('genStatusText').textContent = 'Step 4/5: Tinatawagan ang POST /api/generate-video (Hugging Face Inference)...';
+            const apiRes = await generateWithAPI({
+              provider: settings.provider,
+              projectTitle: p.title,
+              masterPrompt: p.prompt,
+              character: p.character,
+              effectId: p.effectId || 'manila-noir',
+              scenes: p.scenes
+            });
+
+            p.scenes = apiRes.scenes;
+            if (apiRes.videoBlob) {
+              await saveBlobToIndexedDb(p.id, apiRes.videoBlob);
+              bindVideoBlobToPlayer(apiRes.videoBlob);
+            }
+          }
+        }
+
+        p.status = 'Done';
+        p.updatedAt = new Date().toISOString().slice(0, 16).replace('T', ' ');
+        persistProjects();
+        renderAll();
+        showToast('Tapos na ang 5-Step 3!2!1! Akzyon Generation! Na-save ang MP4 sa IndexedDB.');
+      } catch (err) {
+        p.status = 'Draft';
+        persistProjects();
+        document.getElementById('genErrorMsg').textContent = err?.message || 'Nagkaroon ng error sa pagbuo ng video.';
+        document.getElementById('genErrorBox').classList.remove('hidden');
+        document.getElementById('genStatusText').textContent = 'Generation Interrupted';
+      }
+    }
+
+    function retryGenerationPipeline() {
+      document.getElementById('simulateFailToggle').checked = false;
+      runGenerationPipeline();
+    }
+
+    // ============================================================================
+    // COMBINE SCENES INTO ONE VIDEO (STORED IN INDEXEDDB) & EXPORT
+    // ============================================================================
+    async function combineScenesIntoVideo() {
+      const p = getActiveProject();
+      if (!p) return;
+      showToast('Pinagsasama ang mga eksena sa Canvas/IndexedDB...');
+      const canvas = document.createElement('canvas');
+      canvas.width = 640;
+      canvas.height = 360;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, 640, 360);
+      ctx.fillStyle = '#e11d48';
+      ctx.font = 'bold 26px sans-serif';
+      ctx.fillText(p.title, 40, 140);
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = '18px sans-serif';
+      ctx.fillText(`Combined ${p.scenes.length} Scenes • Character: ${p.character.name}`, 40, 185);
+
+      canvas.toBlob(async (blob) => {
+        if (blob) {
+          await saveBlobToIndexedDb(p.id, blob);
+          showToast('Na-save ang combined media blob sa IndexedDB!');
+        }
+      }, 'image/png');
+    }
+
+    function downloadVideoExport() {
+      const p = getActiveProject();
+      const fmt = document.getElementById('exportFormatSelect').value;
+      const res = document.getElementById('exportResSelect').value;
+      const aud = document.getElementById('exportAudioSelect').value;
+      const content = `3!2!1! AKZYON EXPORT CONTAINER\nTitle: ${p.title}\nResolution: ${res}\nFormat: ${fmt}\nAudio: ${aud}\nScenes: ${p.scenes.length}`;
+      const blob = new Blob([content], { type: fmt === 'mp4' ? 'video/mp4' : 'video/webm' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `321akzyon_${p.title.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_${res}.${fmt}`;
+      a.click();
+      showToast(`Na-download ang ${res} .${fmt} (${aud} audio)!`);
+    }
+
+    function copyLocalShareLink() {
+      const p = getActiveProject();
+      const url = `${window.location.origin}${window.location.pathname}?project=${encodeURIComponent(p.id)}`;
+      if (navigator.clipboard) navigator.clipboard.writeText(url);
+      showToast('Nakopya ang local share link: ' + url);
+    }
+
+    function saveProjectManual() {
+      syncCurrentProjectInputs();
+      showToast('Na-save ang project sa localStorage!');
+    }
+
+    function downloadExportJson() {
+      const p = getActiveProject();
+      const payload = {
+        schemaVersion: '2.0.0',
+        exportedAt: new Date().toISOString(),
+        project: p
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `321akzyon_${p.id}_export_ready.json`;
+      a.click();
+      showToast('Na-download ang export-ready JSON!');
+    }
+
+    // ============================================================================
+    // INSPIRATION, TOOLS, SETTINGS & ONBOARDING MODALS
+    // ============================================================================
+    function openInspirationModal() {
+      document.getElementById('allInspirationModalGrid').innerHTML = DRAMA_INSPIRATIONS.map(item => `
+        <div class="p-4 rounded-2xl border border-slate-800 bg-slate-950 space-y-2">
+          <span class="text-[10px] font-bold uppercase text-amber-400">${item.genre}</span>
+          <h4 class="text-sm font-bold text-white">${item.title}</h4>
+          <p class="text-xs text-slate-400">${item.prompt}</p>
+          <div class="text-[11px] text-slate-300">Character: <strong>${item.charName}</strong> (${item.charStyle})</div>
+          <button onclick="useInspiration('${item.id}')" class="min-h-[40px] w-full rounded-xl bg-red-600 text-white text-xs font-bold">Gamitin Ito</button>
+        </div>
+      `).join('');
+      document.getElementById('inspirationModal').classList.remove('hidden');
+    }
+
+    function useInspiration(id) {
+      const item = DRAMA_INSPIRATIONS.find(x => x.id === id);
+      if (!item) return;
+      document.getElementById('inspirationModal').classList.add('hidden');
+      const newP = {
+        id: 'proj-insp-' + Date.now(),
+        title: item.title,
+        updatedAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
+        status: 'Draft',
+        prompt: item.prompt,
+        effectId: 'none',
+        character: { name: item.charName, appearance: item.charApp, style: item.charStyle },
+        scenes: [
+          { id: 's-1', text: item.prompt, durationSec: 5, thumbnailDataUrl: makeSvgThumb(item.title, item.charName, '#e11d48') },
+          { id: 's-2', text: `Sumunod na eksena ni ${item.charName} habang lumalalim ang tensyon.`, durationSec: 6, thumbnailDataUrl: makeSvgThumb('Scene 2', item.charStyle, '#0284c7') }
+        ]
+      };
+      projects.unshift(newP);
+      activeProjectId = newP.id;
+      persistProjects();
+      switchTab('studio');
+      showToast('Nailapat ang Drama Inspiration template!');
+    }
+
+    function openToolModal(type) {
+      const p = getActiveProject();
+      const titleEl = document.getElementById('toolModalTitle');
+      const bodyEl = document.getElementById('toolModalBody');
+      if (type === 'effects') {
+        titleEl.textContent = '✨ Visual Effects Catalog (Replaced Cool Me + FX)';
+        bodyEl.innerHTML = VISUAL_EFFECT_PRESETS.map(fx => `
+          <div class="p-3.5 rounded-2xl border ${p.effectId === fx.id ? 'border-red-500 bg-red-950/30' : 'border-slate-800 bg-slate-950'} flex items-center justify-between gap-3">
+            <div>
+              <div class="text-xs font-bold text-white">${fx.name}</div>
+              <div class="text-[11px] text-slate-400">${fx.description}</div>
+            </div>
+            <button onclick="applyEffectPreset('${fx.id}')" class="min-h-[40px] px-3.5 py-1.5 rounded-xl bg-red-600 text-white text-xs font-bold shrink-0">Apply FX</button>
+          </div>
+        `).join('');
+      } else if (type === 'video') {
+        titleEl.textContent = '🎬 Video Camera Motion Director';
+        bodyEl.innerHTML = `
+          <p class="text-xs text-slate-300">Pumili ng camera movement na idaragdag sa lahat ng eksena ng <strong>${p.title}</strong>:</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="applyCameraMotion('Slow Anamorphic Dolly Zoom')" class="min-h-[44px] p-3 rounded-xl bg-slate-800 hover:bg-red-600 text-xs font-bold">Slow Dolly Zoom</button>
+            <button onclick="applyCameraMotion('Handheld Rain Tracking Shot')" class="min-h-[44px] p-3 rounded-xl bg-slate-800 hover:bg-red-600 text-xs font-bold">Handheld Tracking</button>
+          </div>`;
+      } else if (type === 'image') {
+        titleEl.textContent = '🖼️ Keyframe Image Regenerator';
+        bodyEl.innerHTML = `
+          <p class="text-xs text-slate-300">I-refresh ang lahat ng SVG keyframe thumbnails ng project gamit ang Character Profile ni <strong>${p.character.name}</strong>.</p>
+          <button onclick="regenerateAllThumbs()" class="min-h-[44px] w-full rounded-xl bg-sky-600 text-white text-xs font-bold">Regenerate Keyframes Now</button>`;
+      } else {
+        titleEl.textContent = '✍️ AI Teleserye Story Writer';
+        bodyEl.innerHTML = `
+          <p class="text-xs text-slate-300">Bumuo ng 3 bagong eksena na may dramatic plot twist para kay <strong>${p.character.name}</strong>.</p>
+          <button onclick="autoWriteThreeScenes()" class="min-h-[44px] w-full rounded-xl bg-emerald-600 text-slate-950 text-xs font-black">Generate 3 Plot Twist Scenes</button>`;
+      }
+      document.getElementById('toolModal').classList.remove('hidden');
+    }
+
+    function applyEffectPreset(fxId) {
+      const p = getActiveProject();
+      p.effectId = fxId;
+      persistProjects();
+      document.getElementById('toolModal').classList.add('hidden');
+      switchTab('studio');
+      showToast('Na-apply ang Visual Effect preset!');
+    }
+
+    function applyCameraMotion(motion) {
+      const p = getActiveProject();
+      p.scenes.forEach(s => { if (!s.text.includes(motion)) s.text += ` [${motion}]`; });
+      persistProjects();
+      document.getElementById('toolModal').classList.add('hidden');
+      switchTab('studio');
+      showToast('Naidagdag ang Camera Motion sa timeline!');
+    }
+
+    function regenerateAllThumbs() {
+      const p = getActiveProject();
+      p.scenes.forEach((s, i) => {
+        s.thumbnailDataUrl = makeSvgThumb(`${p.title} #${i + 1}`, s.text.slice(0, 30), i % 2 === 0 ? '#0284c7' : '#e11d48');
+      });
+      persistProjects();
+      document.getElementById('toolModal').classList.add('hidden');
+      switchTab('studio');
+      showToast('Na-refresh ang lahat ng scene thumbnails!');
+    }
+
+    function autoWriteThreeScenes() {
+      const p = getActiveProject();
+      p.scenes = [
+        { id: 'w1-' + Date.now(), text: `Natuklasan ni ${p.character.name} ang lihim na sulat sa ibabaw ng mesa.`, durationSec: 5, thumbnailDataUrl: makeSvgThumb('Act I: Discovery', p.character.name, '#e11d48') },
+        { id: 'w2-' + Date.now(), text: `Hinarap ni ${p.character.name} ang kontrabida sa gitna ng malakas na ulan.`, durationSec: 6, thumbnailDataUrl: makeSvgThumb('Act II: Confrontation', p.character.style, '#7c3aed') },
+        { id: 'w3-' + Date.now(), text: `Isang hindi inaasahang kakampi ang dumating bago mahuli ang lahat.`, durationSec: 6, thumbnailDataUrl: makeSvgThumb('Act III: Cliffhanger', 'Finale Twist', '#0284c7') }
+      ];
+      persistProjects();
+      document.getElementById('toolModal').classList.add('hidden');
+      switchTab('studio');
+      showToast('Naisulat ang 3 bagong teleserye scenes!');
+    }
+
+    // Settings
+    function applySettingsToDOM() {
+      document.documentElement.classList.toggle('light', settings.theme === 'light');
+      document.documentElement.classList.toggle('dark', settings.theme !== 'light');
+      document.getElementById('welcomeSub').textContent = settings.language === 'en'
+        ? 'Welcome back, Direk!'
+        : 'Maligayang pagbabalik, Direk!';
+      document.getElementById('simBadge').textContent = settings.provider === 'simulated'
+        ? 'Simulated Mode'
+        : `${settings.provider.toUpperCase()} Hook`;
+
+      document.getElementById('settingsUserName').value = 'Direk!';
+      document.getElementById('settingsTheme').value = settings.theme;
+      document.getElementById('settingsLang').value = settings.language;
+      document.getElementById('settingsProvider').value = settings.provider;
+    }
+
+    function saveSettingsFromUI() {
+      settings.userName = document.getElementById('settingsUserName').value || 'Direk!';
+      settings.theme = document.getElementById('settingsTheme').value;
+      settings.language = document.getElementById('settingsLang').value;
+      settings.provider = document.getElementById('settingsProvider').value;
+      localStorage.setItem(LS_SETTINGS_KEY, JSON.stringify(settings));
+      applySettingsToDOM();
+      updateStorageMeter();
+    }
+
+    function openClearDataConfirm() {
+      document.getElementById('clearDataModal').classList.remove('hidden');
+    }
+
+    function confirmClearAllData() {
+      localStorage.removeItem(LS_PROJECTS_KEY);
+      localStorage.removeItem(LS_SETTINGS_KEY);
+      localStorage.removeItem(LS_ONBOARD_KEY);
+      indexedDB.deleteDatabase('AiDramaStudioVideoDB');
+      document.getElementById('clearDataModal').classList.add('hidden');
+      projects = [];
+      loadInitialState();
+      renderAll();
+      showToast('Na-clear na ang lahat ng data!');
+    }
+
+    // Onboarding
+    function openOnboarding() {
+      onboardIndex = 0;
+      renderOnboardSlide();
+      document.getElementById('onboardingModal').classList.remove('hidden');
+    }
+    function closeOnboarding() {
+      localStorage.setItem(LS_ONBOARD_KEY, '1');
+      document.getElementById('onboardingModal').classList.add('hidden');
+    }
+    function renderOnboardSlide() {
+      const s = ONBOARD_SLIDES[onboardIndex];
+      document.getElementById('onboardStepBadge').textContent = `Slide ${onboardIndex + 1} / ${ONBOARD_SLIDES.length}`;
+      document.getElementById('onboardTitle').textContent = s.title;
+      document.getElementById('onboardBody').textContent = s.body;
+      document.getElementById('onboardPrevBtn').disabled = onboardIndex === 0;
+      document.getElementById('onboardNextBtn').textContent = onboardIndex === ONBOARD_SLIDES.length - 1 ? 'Simulan Na!' : 'Next →';
+    }
+    function prevOnboardSlide() {
+      if (onboardIndex > 0) { onboardIndex--; renderOnboardSlide(); }
+    }
+    function nextOnboardSlide() {
+      if (onboardIndex < ONBOARD_SLIDES.length - 1) { onboardIndex++; renderOnboardSlide(); }
+      else closeOnboarding();
+    }
+
+    // Upgrade
+    function openUpgradeModal() {
+      document.getElementById('upgradeModal').classList.remove('hidden');
+    }
+    function proceedUpgrade() {
+      document.getElementById('upgradeModal').classList.add('hidden');
+      showToast('Pro Plan Activated (Preview Mode)! Maaari mo nang gamitin ang lahat ng presets.');
+    }
+
+    // Live Cloud & Firebase Config Modal
+    const LS_CLOUD_CFG_KEY = 'ai_drama_studio_cloud_cfg_v2';
+    function openCloudConfigModal() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(LS_CLOUD_CFG_KEY) || '{}');
+        document.getElementById('liveFirebaseConfigInput').value = saved.firebaseConfigJson || JSON.stringify({
+          projectId: 'movie-city-ai',
+          firestoreDatabaseId: 'ai-studio-renderqueuecli-5fbac4b9-3101-4ff0-ae2b-807d128802d8',
+          r2Bucket: 'movie-city-media'
+        }, null, 2);
+        document.getElementById('liveWorkerUrlInput').value = saved.workerUrl || '/media';
+      } catch (_e) {}
+      document.getElementById('cloudConfigModal').classList.remove('hidden');
+    }
+    function closeCloudConfigModal() {
+      document.getElementById('cloudConfigModal').classList.add('hidden');
+    }
+    function saveCloudConfigModal() {
+      const firebaseConfigJson = document.getElementById('liveFirebaseConfigInput').value.trim();
+      const workerUrl = document.getElementById('liveWorkerUrlInput').value.trim() || '/media';
+      localStorage.setItem(LS_CLOUD_CFG_KEY, JSON.stringify({ firebaseConfigJson, workerUrl, updatedAt: new Date().toISOString() }));
+      closeCloudConfigModal();
+      showToast('Na-save ang Live Cloud & Firebase Config sa runtime storage!');
+    }
+
+    // LTX-Video 2B v0.9.5 Direct Generation & Colab Secrets Snippet
+    async function generateLtxVideoDirect() {
+      const btn = document.getElementById('ltxGenBtn');
+      const prompt = document.getElementById('ltxPromptInput').value.trim();
+      const [width, height] = document.getElementById('ltxResSelect').value.split('x').map(Number);
+      const frames = Number(document.getElementById('ltxFramesSelect').value) || 73;
+      if (!prompt) {
+        showToast('Maglagay muna ng LTX-Video prompt.');
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = '⏳ Generating LTX-Video 2B (24fps)...';
+      try {
+        const res = await fetch('/api/ltx-video/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt,
+            negativePrompt: 'low quality, worst quality, deformed, distorted, disfigured, motion smear, motion artifacts, fused fingers, bad anatomy, weird hand, ugly',
+            width,
+            height,
+            frames,
+            steps: 30,
+            cfg: 3.0,
+            frameRate: 24
+          })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.url) {
+          throw new Error(data.error || 'Nabigo ang pagbuo ng LTX-Video MP4.');
+        }
+        const vid = document.getElementById('ltxPreviewVideo');
+        vid.src = data.url;
+        vid.load();
+        vid.play().catch(() => {});
+        document.getElementById('ltxOutputBadge').textContent = `${data.url} (${Math.round((data.sizeBytes || 0) / 1024)} KB)`;
+        showToast(`LTX-Video 2B MP4 Ready: ${data.url}`);
+      } catch (err) {
+        showToast(err.message || 'LTX-Video error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🎬 Generate LTX-Video 2B MP4 → /media/:key';
+      }
+    }
+
+    function copyColabSecretsSnippet() {
+      const snippet = [
+        'from google.colab import userdata',
+        'import os',
+        "FAL_KEY = userdata.get('FAL_KEY')",
+        "GEMINi_key = userdata.get('GEMINi_key')",
+        'if FAL_KEY: os.environ["FAL_KEY"] = FAL_KEY',
+        'if GEMINi_key:',
+        '    os.environ["GEMINi_key"] = GEMINi_key',
+        '    os.environ["GEMINI_API_KEY"] = GEMINi_key'
+      ].join('\n');
+      if (navigator.clipboard) navigator.clipboard.writeText(snippet);
+      showToast("Nakopya ang userdata.get('FAL_KEY') at userdata.get('GEMINi_key') snippet!");
+    }
+
+    // PWA Install Prompt & Service Worker Registration
+    let deferredInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+    });
+
+    async function installPwaToPhone() {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+      } else {
+        showToast('Para i-install sa Android: Pindutin ang Chrome Menu (⋮) → "Add to Home screen" / "Install app".');
+      }
+    }
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+
+    // Boot
+    window.addEventListener('DOMContentLoaded', () => {
+      loadInitialState();
+      switchTab('home');
+    });
+  </script>
+</body>
+</html>

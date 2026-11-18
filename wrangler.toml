@@ -1,0 +1,27 @@
+name = "flat-dream-15fc"
+main = "worker/index.ts"
+compatibility_date = "2025-02-01"
+account_id = "bc80fa9ec68ba1d2ee20d5f4e9076a87"
+
+# 1. Cloudflare R2 Media Storage Binding
+# Binds `env.MEDIA` in the Worker to the R2 bucket "movie-city-media"
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "movie-city-media"
+preview_bucket_name = "movie-city-media-preview"
+
+# 2. Cloudflare Hyperdrive PostgreSQL Connection Pool Binding
+# Note: Set actual database credentials strictly via `wrangler secret` / `.dev.vars` (never commit plaintext passwords)
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "hd_bc80fa9e_flatdream15fc_2026"
+localConnectionString = "postgres://321action_admin:[SET_IN_SERVER_ENV]@db.flat-dream-15fc.ap-southeast-1.pg.neon.tech:5432/ai_drama_studio?sslmode=require"
+
+[vars]
+CF_TOKEN_NAME = "flat-dream-15fc"
+CF_CLIENT_IP_CIDR = "112.207.213.158/32"
+R2_BUCKET_NAME = "movie-city-media"
+R2_BINDING_NAME = "MEDIA"
+DAILY_LIMIT_IMAGE = "5"
+DAILY_LIMIT_VIDEO = "1"
+DAILY_LIMIT_MUSIC = "3"

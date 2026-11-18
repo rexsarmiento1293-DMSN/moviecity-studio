@@ -1,0 +1,6 @@
+{
+  "name": "3!2!1! Akzyon",
+  "description": "Parallel 24-segment FFmpeg video render pipeline with NVENC/libx264 auto-detection, 3D render cluster visualizer, Gemini multimedia studio, and Google Drive integration.",
+  "requestFramePermissions": ["microphone", "camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
