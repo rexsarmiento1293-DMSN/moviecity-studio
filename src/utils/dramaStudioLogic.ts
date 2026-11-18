@@ -819,7 +819,16 @@ function vramCrashThresholdReached(width: number, height: number, frames: number
  *   2. Wraps `clip_encode_positive` and `clip_encode_negative` inside `with torch.inference_mode():`
  *      and honors `Use_t5xxl_fp16` dynamically.
  */
+export const SHARED_COLAB_DRIVE_ID = '1y6VBmKBSb8mkxR7ODVycSJjX4cW9N3aA';
+export const SHARED_COLAB_NOTEBOOK_URL =
+  'https://colab.research.google.com/drive/1y6VBmKBSb8mkxR7ODVycSJjX4cW9N3aA?usp=sharing';
+export const DEFAULT_COLAB_REGISTER_TOKEN = 'mc-colab-reg-2026';
+export const DEFAULT_COLAB_BRIDGE_TOKEN = 'mc-colab-bridge-2026';
+export const DEFAULT_APP_BASE_URL =
+  'https://ais-pre-fz666tzjxzt6uyw2issv7t-388006830704.asia-southeast1.run.app';
+
 export const COLAB_SECRETS_SNIPPET = `# Load Private Secrets from Google Colab Secrets Panel (FAL_KEY, GEMINi_key, COLAB_REGISTER_TOKEN, COLAB_BRIDGE_TOKEN)
+# Direct Shared Colab Notebook: ${SHARED_COLAB_NOTEBOOK_URL}
 import os
 from google.colab import userdata
 
@@ -837,8 +846,8 @@ def load_colab_secret(secret_name: str, env_var_name: str = None) -> str:
 
 FAL_KEY = load_colab_secret('FAL_KEY', 'FAL_KEY')
 GEMINI_API_KEY = load_colab_secret('GEMINi_key', 'GEMINI_API_KEY') or load_colab_secret('GEMINI_API_KEY', 'GEMINI_API_KEY')
-COLAB_REGISTER_TOKEN = load_colab_secret('COLAB_REGISTER_TOKEN', 'COLAB_REGISTER_TOKEN')
-COLAB_BRIDGE_TOKEN = load_colab_secret('COLAB_BRIDGE_TOKEN', 'COLAB_BRIDGE_TOKEN')
+COLAB_REGISTER_TOKEN = load_colab_secret('COLAB_REGISTER_TOKEN', 'COLAB_REGISTER_TOKEN') or "${DEFAULT_COLAB_REGISTER_TOKEN}"
+COLAB_BRIDGE_TOKEN = load_colab_secret('COLAB_BRIDGE_TOKEN', 'COLAB_BRIDGE_TOKEN') or "${DEFAULT_COLAB_BRIDGE_TOKEN}"
 APP_BASE_URL = load_colab_secret('APP_BASE_URL', 'APP_BASE_URL')`;
 
 export function buildFixedLtxColabScript(
@@ -848,12 +857,13 @@ export function buildFixedLtxColabScript(
   const escapedPos = normalized.positive_prompt.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   const escapedNeg = normalized.negative_prompt.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   const defaultAppBaseUrl = String(
-    input.app_base_url || 'https://ais-pre-fz666tzjxzt6uyw2issv7t-388006830704.asia-southeast1.run.app'
+    input.app_base_url || DEFAULT_APP_BASE_URL
   )
     .trim()
     .replace(/\/+$/, '');
 
   return `# @title Prepare Environment + LTX-Video 2B v0.9.5 + Cloudflared Bridge (Python 3.13 / cp313)
+# Shared Google Colab Link: ${SHARED_COLAB_NOTEBOOK_URL}
 !pip install -q torch==2.6.0 torchvision==0.21.0
 %cd /content
 Always_Load_Models_for_Inference = ${normalized.always_load_models ? 'True' : 'False'}
@@ -1153,7 +1163,7 @@ class ColabLtxBridgeHandler(BaseHTTPRequestHandler):
         self.wfile.write(raw)
 
     def _check_auth(self) -> bool:
-        expected = (COLAB_BRIDGE_TOKEN or os.environ.get("COLAB_BRIDGE_TOKEN") or "").strip()
+        expected = (COLAB_BRIDGE_TOKEN or os.environ.get("COLAB_BRIDGE_TOKEN") or "${DEFAULT_COLAB_BRIDGE_TOKEN}").strip()
         if not expected:
             return True
         auth_header = self.headers.get("Authorization") or ""
@@ -1191,7 +1201,7 @@ class ColabLtxBridgeHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/health":
-            self._send_json(200, {"ok": True, "provider": "ltx-video-colab"})
+            self._send_json(200, {"ok": True, "provider": "ltx-video-colab", "notebookId": "${SHARED_COLAB_DRIVE_ID}"})
             return
         if self.path.startswith("/jobs/"):
             if not self._check_auth():
@@ -1264,9 +1274,19 @@ def start_colab_bridge(app_base_url: str = None, port: int = 8765) -> str:
         raise RuntimeError("Could not obtain https://*.trycloudflare.com tunnel URL from cloudflared.")
 
     print(f"🌐 Cloudflared Tunnel Active: {tunnel_url}")
-    reg_token = (COLAB_REGISTER_TOKEN or os.environ.get("COLAB_REGISTER_TOKEN") or "").strip()
-    if reg_token and target_base:
-        reg_endpoint = f"{target_base}/api/colab/register"
+    reg_token = (COLAB_REGISTER_TOKEN or os.environ.get("COLAB_REGISTER_TOKEN") or "${DEFAULT_COLAB_REGISTER_TOKEN}").strip()
+    candidate_bases = []
+    for base_candidate in [
+        target_base,
+        "${DEFAULT_APP_BASE_URL}",
+        "https://ais-dev-fz666tzjxzt6uyw2issv7t-388006830704.asia-southeast1.run.app",
+    ]:
+        clean_b = (base_candidate or "").strip().rstrip("/")
+        if clean_b and clean_b not in candidate_bases:
+            candidate_bases.append(clean_b)
+
+    for base_url in candidate_bases:
+        reg_endpoint = f"{base_url}/api/colab/register"
         body_bytes = json.dumps({"url": tunnel_url, "provider": "ltx-video-colab"}).encode("utf-8")
         req = urllib.request.Request(
             reg_endpoint,
@@ -1283,11 +1303,9 @@ def start_colab_bridge(app_base_url: str = None, port: int = 8765) -> str:
                 print(f"✅ Registered Colab Bridge with {reg_endpoint}: {resp_text}")
         except urllib.error.HTTPError as e:
             err_body = e.read().decode("utf-8", errors="ignore")
-            print(f"⚠️ Registration failed ({e.code}): {err_body}")
+            print(f"⚠️ Registration failed on {reg_endpoint} ({e.code}): {err_body}")
         except Exception as e:
             print(f"⚠️ Could not reach {reg_endpoint}: {e}")
-    else:
-        print("ℹ️ Add COLAB_REGISTER_TOKEN and COLAB_BRIDGE_TOKEN to Colab Secrets to auto-register with Movie City.")
     return tunnel_url
 
 
@@ -1297,7 +1315,8 @@ print("✅ Environment Setup Complete!")
 
 /**
  * Builds a complete, downloadable `.ipynb` Jupyter Notebook JSON with Cell 1 (`Prepare Environment`)
- * and Cell 2 (`Start Cloudflared Bridge & Run Inference / generate_video(...)`) with the Python 3.13 fix applied.
+ * and Cell 2 (`LTX-Video Parameters + Start Movie City Bridge`) synced with the shared notebook
+ * `https://colab.research.google.com/drive/1y6VBmKBSb8mkxR7ODVycSJjX4cW9N3aA?usp=sharing`.
  */
 export function buildFixedLtxColabNotebookJson(
   input: Partial<LtxVideoParams> & { app_base_url?: string } = {}
@@ -1314,28 +1333,55 @@ export function buildFixedLtxColabNotebookJson(
   const escapedPos = normalized.positive_prompt.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   const escapedNeg = normalized.negative_prompt.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   const defaultAppBaseUrl = String(
-    input.app_base_url || 'https://ais-pre-fz666tzjxzt6uyw2issv7t-388006830704.asia-southeast1.run.app'
+    input.app_base_url || DEFAULT_APP_BASE_URL
   )
     .trim()
     .replace(/\/+$/, '');
-  const cell2Code = `# @title Start Cloudflared Tunnel Bridge + Generate Video with LTX-Video 2B v0.9.5
-# 1. Start the TryCloudflare bridge and auto-register with Movie City (/api/colab/register)
-if COLAB_REGISTER_TOKEN:
-    start_colab_bridge(app_base_url=APP_BASE_URL or "${defaultAppBaseUrl}")
+  const cell2Code = `# @title LTX-Video Parameters + Start Movie City Bridge
+# Shared Notebook: ${SHARED_COLAB_NOTEBOOK_URL}
+# ---------------------------------------------------------------------------
+# 1) Itakda ang eksena mo dito (o gamitin ang sliders sa kanan)
+# ---------------------------------------------------------------------------
+positive_prompt = "${escapedPos}" # @param {"type":"string"}
+negative_prompt = "${escapedNeg}" # @param {"type":"string"}
+width = ${normalized.width} # @param {"type":"number"}
+height = ${normalized.height} # @param {"type":"number"}
+seed = ${normalized.seed} # @param {"type":"integer"}
+steps = ${normalized.steps} # @param {"type":"integer", "min":1, "max":100}
+cfg_scale = ${normalized.cfg_scale} # @param {"type":"number", "min":1, "max":20}
+sampler_name = "${normalized.sampler_name}" # @param ["res_multistep", "euler", "dpmpp_2m", "ddim", "lms"]
+frames = ${normalized.frames} # @param {"type":"integer", "min":1, "max":120}
+fps = ${normalized.fps} # @param {"type":"integer", "min":1, "max":60}
+use_gemini_enhancer = False # @param {"type":"boolean"}
+use_fal_cloud = False # @param {"type":"boolean"}
+run_direct_test = False # @param {"type":"boolean"}
 
-# 2. Optional direct notebook test render:
-generate_video(
-    positive_prompt="${escapedPos}",
-    negative_prompt="${escapedNeg}",
-    width=${normalized.width},
-    height=${normalized.height},
-    seed=${normalized.seed},
-    steps=${normalized.steps},
-    cfg_scale=${normalized.cfg_scale},
-    sampler_name="${normalized.sampler_name}",
-    length=${normalized.frames},
-    fps=${normalized.fps}
-)`;
+# ---------------------------------------------------------------------------
+# 2) Simulan ang Cloudflared tunnel + auto-register sa Movie City (/api/colab/register)
+# ---------------------------------------------------------------------------
+start_colab_bridge(app_base_url=APP_BASE_URL or "${defaultAppBaseUrl}")
+
+# ---------------------------------------------------------------------------
+# 3) Opsyonal: direktang test render sa notebook (kapag run_direct_test=True)
+# ---------------------------------------------------------------------------
+if run_direct_test:
+    with torch.inference_mode():
+        generate_video(
+            positive_prompt=positive_prompt,
+            negative_prompt=negative_prompt,
+            width=width,
+            height=height,
+            seed=seed,
+            steps=steps,
+            cfg_scale=cfg_scale,
+            sampler_name=sampler_name,
+            length=frames,
+            fps=fps,
+            use_gemini_enhancer=use_gemini_enhancer,
+            use_fal_cloud=use_fal_cloud,
+            show_inline=True,
+        )
+    clear_memory()`;
   const cell2Lines = cell2Code
     .split('\n')
     .map((line, idx, arr) => (idx < arr.length - 1 ? `${line}\n` : line));
@@ -1362,10 +1408,18 @@ generate_video(
         cell_type: 'markdown',
         metadata: { id: 'ltx_header_fixed' },
         source: [
-          '# **LTX-VIDEO 2B v0.9.5 Text-to-Video + Movie City Cloudflared Bridge (Python 3.13 Fix)**\n',
-          '- Installs `torchsde`, `einops`, `diffusers`, `accelerate`, and `av` cleanly before optional `xformers`.\n',
-          '- Exposes `POST /jobs`, `GET /jobs/{job_id}`, and `GET /jobs/{job_id}/file` authenticated with `COLAB_BRIDGE_TOKEN`.\n',
-          '- Auto-registers its `https://*.trycloudflare.com` tunnel URL to `POST /api/colab/register` using `X-Colab-Register-Token` (`COLAB_REGISTER_TOKEN`).\n',
+          '# **LTX-VIDEO 2B v0.9.5 — Text to Video + Movie City Bridge (PINAG-ISA)**\n',
+          `\nShared Google Colab Link: [Open in Google Colab](${SHARED_COLAB_NOTEBOOK_URL})\n\n`,
+          'Pinagsamang bersyon: ang ComfyUI pipeline mo + ang Movie City bridge.\n\n',
+          '## Paano gamitin\n',
+          '1. **Runtime → Change runtime type → T4 GPU** (kailangan ng GPU)\n',
+          '2. Idagdag ang Colab Secrets (🔑 panel, i-ON ang **Notebook access**):\n',
+          `   - \`COLAB_REGISTER_TOKEN\` (default: \`${DEFAULT_COLAB_REGISTER_TOKEN}\`)\n`,
+          `   - \`COLAB_BRIDGE_TOKEN\` (default: \`${DEFAULT_COLAB_BRIDGE_TOKEN}\`)\n`,
+          `   - \`APP_BASE_URL\` (default: \`${defaultAppBaseUrl}\`)\n`,
+          '   - `FAL_KEY` / `GEMINi_key` (opsyonal, para sa cloud/enhancer)\n',
+          '3. Patakbuhin ang **Cell 1** (Prepare Environment) — ~5-10 min (4 GB model)\n',
+          '4. Patakbuhin ang **Cell 2** (Parameters + Start Bridge)\n',
         ],
       },
       {

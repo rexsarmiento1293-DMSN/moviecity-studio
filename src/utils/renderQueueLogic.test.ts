@@ -32,6 +32,10 @@ import {
   validateLtxVideoParams,
   buildFixedLtxColabScript,
   buildFixedLtxColabNotebookJson,
+  SHARED_COLAB_DRIVE_ID,
+  SHARED_COLAB_NOTEBOOK_URL,
+  DEFAULT_COLAB_REGISTER_TOKEN,
+  DEFAULT_COLAB_BRIDGE_TOKEN,
   DramaProject,
   DramaScene,
 } from './dramaStudioLogic.ts';
@@ -926,6 +930,14 @@ describe('Cloudflare Worker generateWithAPI(prompt, type) & Client IP CIDR', () 
     );
     assert.equal(ipynbJson.nbformat, 4);
     assert.equal(ipynbJson.cells.length, 3);
+    assert.equal(SHARED_COLAB_DRIVE_ID, '1y6VBmKBSb8mkxR7ODVycSJjX4cW9N3aA');
+    assert.equal(
+      SHARED_COLAB_NOTEBOOK_URL,
+      'https://colab.research.google.com/drive/1y6VBmKBSb8mkxR7ODVycSJjX4cW9N3aA?usp=sharing'
+    );
+    assert.equal(DEFAULT_COLAB_REGISTER_TOKEN, 'mc-colab-reg-2026');
+    assert.equal(DEFAULT_COLAB_BRIDGE_TOKEN, 'mc-colab-bridge-2026');
+    assert.ok(ipynbJson.cells[0].source.join('').includes(SHARED_COLAB_NOTEBOOK_URL));
     assert.ok(ipynbJson.cells[2].source.join('').includes('start_colab_bridge'));
     assert.ok(ipynbJson.cells[2].source.join('').includes('https://movie-city.ai.studio'));
   });

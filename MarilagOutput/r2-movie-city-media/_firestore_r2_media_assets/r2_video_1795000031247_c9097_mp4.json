@@ -1,0 +1,15 @@
+{
+  "id": "r2_video_1795000031247_c9097_mp4",
+  "ownerId": "studio_e2e_user",
+  "projectId": "proj-default-1",
+  "r2Key": "video_1795000031247_c9097.mp4",
+  "bucket": "movie-city-media",
+  "url": "/media/video_1795000031247_c9097.mp4",
+  "mediaType": "video",
+  "prompt": "Generate a 4K cinematic ultra high definition realistic 3D video about [CONSISTENT CHARACTER LOCK — Character: Clara Montes | Appearance: 26yo Filipina lead, long dark hair, emerald dress | Style: Cinematic moody lighting, 35mm film grain] [FX: Manila Rain Noir] Ulan sa Escolta.. Visual Effect Preset: Manila Rain Noir (High-contrast moody shadows with cool cyan rain reflections and dramatic vignette.). Camera movement is smooth cinematic drone shot / slow panning, professional color grading, hyper-realistic textures, 60fps feel, studio-grade visual effects, dramatic lighting, Unreal Engine 5",
+  "contentType": "video/mp4",
+  "sizeBytes": 262374,
+  "model": "Wan-AI/Wan2.1-T2V-14B",
+  "createdAtIso": "2026-11-18T11:07:11.559Z",
+  "firestoreClientError": null
+}

@@ -1,4 +1,11 @@
 import React, { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
+import {
+  SHARED_COLAB_DRIVE_ID,
+  SHARED_COLAB_NOTEBOOK_URL,
+  DEFAULT_COLAB_REGISTER_TOKEN,
+  DEFAULT_COLAB_BRIDGE_TOKEN,
+  DEFAULT_APP_BASE_URL,
+} from "../utils/dramaStudioLogic";
 
 export type Provider = "fal" | "colab" | "local" | "showcase";
 export type BridgeStatus = "loading" | "active" | "offline" | "expired" | "error";
@@ -15,6 +22,8 @@ export type GenerateResponse = {
 export type BridgeStatusResponse = {
   status?: "active" | "offline" | "expired";
   provider?: "ltx-video-colab";
+  notebookUrl?: string;
+  driveId?: string;
   expiresAt?: string;
 };
 
@@ -558,9 +567,42 @@ export default function VideoGenerationPanel({
   const [shouldAutoPlay, setShouldAutoPlay] = useState<boolean>(false);
   const [customUploadName, setCustomUploadName] = useState<string | null>(null);
   const [error, setError] = useState<string>();
+  const [tunnelInputUrl, setTunnelInputUrl] = useState<string>("");
+  const [isConnectingTunnel, setIsConnectingTunnel] = useState<boolean>(false);
+  const [tunnelConnectMsg, setTunnelConnectMsg] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const videoElementRef = useRef<HTMLVideoElement | null>(null);
+
+  async function handleConnectColabTunnel() {
+    const cleanUrl = tunnelInputUrl.trim();
+    if (!cleanUrl) {
+      setTunnelConnectMsg("Maglagay muna ng https://xxxx.trycloudflare.com URL mula sa Colab Cell 2.");
+      return;
+    }
+    setIsConnectingTunnel(true);
+    setTunnelConnectMsg(null);
+    try {
+      const resp = await fetch(joinUrl(apiBaseUrl, "/api/colab/connect"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ url: cleanUrl }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || !data.ok) {
+        setTunnelConnectMsg(data.error || "Hindi valid ang TryCloudflare URL.");
+      } else {
+        setBridgeStatus("active");
+        setBridgeExpiry(data.expiresAt);
+        setTunnelConnectMsg(`Nakakonekta na ang Colab Bridge (${cleanUrl})!`);
+        setTunnelInputUrl("");
+      }
+    } catch {
+      setTunnelConnectMsg("Nabigo sa pagkonekta sa Colab Bridge endpoint.");
+    } finally {
+      setIsConnectingTunnel(false);
+    }
+  }
 
   async function refreshBridgeStatus() {
     if (!colabEnabled) {
@@ -800,6 +842,81 @@ export default function VideoGenerationPanel({
           />
           {colabEnabled ? statusText : "Colab fallback disabled"}
         </div>
+      </div>
+
+      {/* Connected Google Colab Notebook (1y6VBmKBSb8mkxR7ODVycSJjX4cW9N3aA) Bridge Bar */}
+      <div
+        data-testid="shared-colab-bridge-hub"
+        className="mb-5 rounded-xl border border-amber-400/35 bg-neutral-900/95 p-4 space-y-3"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-400">
+              Google Colab LTX-Video 2B v0.9.5 · Connected Notebook ({SHARED_COLAB_DRIVE_ID})
+            </p>
+            <p className="text-xs text-neutral-300">
+              Buksan ang naka-link na Google Colab notebook, patakbuhin ang Cell 1 at Cell 2 (T4 GPU), o i-paste ang{" "}
+              <code className="text-emerald-300">https://*.trycloudflare.com</code> tunnel URL sa ibaba.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              href={SHARED_COLAB_NOTEBOOK_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="open-shared-colab-link"
+              className="rounded-lg bg-amber-400 px-3.5 py-2 text-xs font-extrabold text-neutral-950 transition hover:bg-amber-300"
+            >
+              🚀 Buksan ang Google Colab Notebook
+            </a>
+            <a
+              href="/api/ltx-video/colab-notebook?format=ipynb"
+              download="LTX_Video_2B_v0_9_5_Fixed_Python313.ipynb"
+              className="rounded-lg border border-white/15 bg-neutral-800 px-3 py-2 text-xs font-semibold text-neutral-200 transition hover:bg-neutral-700"
+            >
+              ⬇ Download .ipynb
+            </a>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 text-[11px] font-mono">
+          <div className="rounded-lg border border-white/10 bg-black/60 px-2.5 py-1.5">
+            <span className="text-neutral-400">APP_BASE_URL: </span>
+            <span className="text-emerald-300 break-all">
+              {typeof window !== "undefined" ? window.location.origin : DEFAULT_APP_BASE_URL}
+            </span>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-black/60 px-2.5 py-1.5">
+            <span className="text-neutral-400">COLAB_REGISTER_TOKEN: </span>
+            <span className="text-amber-300 font-bold">{DEFAULT_COLAB_REGISTER_TOKEN}</span>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-black/60 px-2.5 py-1.5">
+            <span className="text-neutral-400">COLAB_BRIDGE_TOKEN: </span>
+            <span className="text-amber-300 font-bold">{DEFAULT_COLAB_BRIDGE_TOKEN}</span>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <input
+            type="url"
+            value={tunnelInputUrl}
+            onChange={(e) => setTunnelInputUrl(e.target.value)}
+            placeholder="I-paste ang https://xxxx.trycloudflare.com mula sa Colab Cell 2..."
+            className="flex-1 rounded-lg border border-white/15 bg-black/80 px-3 py-2 text-xs font-mono text-white outline-none focus:border-amber-400"
+          />
+          <button
+            type="button"
+            disabled={isConnectingTunnel}
+            onClick={handleConnectColabTunnel}
+            className="rounded-lg bg-emerald-500 px-4 py-2 text-xs font-extrabold text-neutral-950 transition hover:bg-emerald-400 disabled:opacity-50 cursor-pointer whitespace-nowrap"
+          >
+            {isConnectingTunnel ? "Kumokonekta..." : "🔗 I-konekta ang Colab Tunnel"}
+          </button>
+        </div>
+
+        {tunnelConnectMsg && (
+          <p className="text-xs font-mono text-emerald-300">{tunnelConnectMsg}</p>
+        )}
       </div>
 
       {/* Pre-Loaded Featured Drama Episodes (Tunay na Tao) + Instant Local MP4 Upload Override */}

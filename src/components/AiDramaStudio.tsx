@@ -58,6 +58,8 @@ import {
   buildFixedLtxColabScript,
   buildFixedLtxColabNotebookJson,
   COLAB_SECRETS_SNIPPET,
+  SHARED_COLAB_DRIVE_ID,
+  SHARED_COLAB_NOTEBOOK_URL,
 } from '../utils/dramaStudioLogic';
 import {
   EXPO_SDK_COMPATIBILITY_MATRIX,
@@ -2212,6 +2214,16 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <a
+                    href={SHARED_COLAB_NOTEBOOK_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-testid="studio-open-shared-colab-btn"
+                    className="min-h-[38px] px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-300 font-mono font-bold uppercase text-xs flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Globe className="w-3.5 h-3.5" />
+                    <span>Open Colab ({SHARED_COLAB_DRIVE_ID.slice(0, 8)}…)</span>
+                  </a>
                   <button
                     type="button"
                     data-testid="copy-fixed-ltx-colab-btn"
