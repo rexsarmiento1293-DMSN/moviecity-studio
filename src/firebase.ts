@@ -332,6 +332,10 @@ export async function saveR2MediaMetadataToFirestore(input: {
   sizeBytes: number;
   model?: string;
 }): Promise<R2MediaAssetMetadata> {
+  if (!auth.currentUser) {
+    throw new Error('Kailangang mag-sign in sa Firebase bago mag-save ng Firestore metadata.');
+  }
+
   const cleanUrl = String(input.url || '').trim();
   if (!cleanUrl || cleanUrl.startsWith('data:')) {
     throw new Error(
@@ -408,13 +412,19 @@ export async function saveR2MediaMetadataToFirestore(input: {
     firestoreClientError,
   };
 
-  try {
-    await fetch('/api/cloudflare/r2/firestore-metadata', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(metadataRecord),
-    });
-  } catch {}
+  const token = await getInMemoryAuthToken();
+  if (token) {
+    try {
+      await fetch('/api/cloudflare/r2/firestore-metadata', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(metadataRecord),
+      });
+    } catch {}
+  }
 
   return metadataRecord;
 }
@@ -473,19 +483,23 @@ export async function loadR2MediaMetadataFromFirestore(
     }
   }
 
-  try {
-    const resp = await fetch(
-      `/api/cloudflare/r2/firestore-metadata/${encodeURIComponent(docId)}`
-    );
-    const data: any = await resp.json();
-    if (resp.ok && data?.ok && data?.doc) {
-      return {
-        ...data.doc,
-        firestoreClientError:
-          firestoreClientError || data.doc.firestoreClientError || null,
-      };
-    }
-  } catch {}
+  const token = await getInMemoryAuthToken();
+  if (token) {
+    try {
+      const resp = await fetch(
+        `/api/cloudflare/r2/firestore-metadata/${encodeURIComponent(docId)}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const data: any = await resp.json();
+      if (resp.ok && data?.ok && data?.doc) {
+        return {
+          ...data.doc,
+          firestoreClientError:
+            firestoreClientError || data.doc.firestoreClientError || null,
+        };
+      }
+    } catch {}
+  }
 
   return null;
 }
@@ -499,18 +513,23 @@ export async function listR2MediaMetadataFromFirestore(): Promise<R2MediaAssetMe
   const mergedByKey = new Map<string, R2MediaAssetMetadata>();
 
   // 1. Always fetch verified R2 assets from server mirror first (includes video_akzyon_episode1.mp4, image_clara_manila_noir.png, test_success.png)
-  try {
-    const resp = await fetch('/api/cloudflare/r2/firestore-metadata');
-    const data: any = await resp.json();
-    if (resp.ok && Array.isArray(data?.items)) {
-      for (const item of data.items as R2MediaAssetMetadata[]) {
-        if (item && item.url) {
-          const key = item.r2Key || item.url;
-          mergedByKey.set(key, item);
+  const token = await getInMemoryAuthToken();
+  if (token) {
+    try {
+      const resp = await fetch('/api/cloudflare/r2/firestore-metadata', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data: any = await resp.json();
+      if (resp.ok && Array.isArray(data?.items)) {
+        for (const item of data.items as R2MediaAssetMetadata[]) {
+          if (item && item.url) {
+            const key = item.r2Key || item.url;
+            mergedByKey.set(key, item);
+          }
         }
       }
-    }
-  } catch {}
+    } catch {}
+  }
 
   // 2. When authenticated, also query Cloud Firestore and merge
   if (auth.currentUser) {
@@ -562,5 +581,3 @@ export async function listR2MediaMetadataFromFirestore(): Promise<R2MediaAssetMe
   );
   return allItems;
 }
-
-
