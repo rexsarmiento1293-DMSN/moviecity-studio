@@ -1561,7 +1561,7 @@ async function startServer() {
 
       const ai = getAiClient();
       const resolved = await resolveValidGeminiModel([
-        'gemini-2.5-pro',
+        'gemini-3.8-flash',
         'gemini-2.5-flash',
         'gemini-2.0-flash',
       ]);
@@ -1601,7 +1601,7 @@ async function startServer() {
       const ai = getAiClient();
       const resolved = await resolveValidGeminiModel(
         speedMode === 'lite'
-          ? ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.0-flash']
+          ? ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-2.0-flash']
           : ['gemini-2.5-flash', 'gemini-2.0-flash']
       );
 
@@ -1633,7 +1633,7 @@ async function startServer() {
       const ai = getAiClient();
       const resolved = await resolveValidGeminiModel([
         'gemini-2.5-flash',
-        'gemini-2.5-pro',
+        'gemini-3.8-flash',
         'gemini-2.0-flash',
       ]);
 
@@ -1690,7 +1690,7 @@ async function startServer() {
       const ai = getAiClient();
       const resolved = await resolveValidGeminiModel([
         'gemini-2.5-flash',
-        'gemini-2.5-pro',
+        'gemini-3.8-flash',
         'gemini-2.0-flash',
       ]);
 
@@ -4604,7 +4604,7 @@ async function startServer() {
   const R2_FIRESTORE_META_DIR = path.join(R2_BUCKET_DIR, '_firestore_r2_media_assets');
   fs.mkdirSync(R2_FIRESTORE_META_DIR, { recursive: true });
 
-  app.post('/api/cloudflare/r2/firestore-metadata', (req, res) => {
+  app.post('/api/cloudflare/r2/firestore-metadata', requireAuth, (req, res) => {
     const body = req.body || {};
     const cleanUrl = String(body.url || '').trim();
     if (!cleanUrl || cleanUrl.startsWith('data:')) {
@@ -4645,7 +4645,7 @@ async function startServer() {
     res.json({ ok: true, doc: docData });
   });
 
-  app.get('/api/cloudflare/r2/firestore-metadata/:id', (req, res) => {
+  app.get('/api/cloudflare/r2/firestore-metadata/:id', requireAuth, (req, res) => {
     const id = String(req.params.id || '')
       .replace(/[^a-zA-Z0-9_-]/g, '_')
       .slice(0, 128);
@@ -4662,7 +4662,7 @@ async function startServer() {
     }
   });
 
-  app.get('/api/cloudflare/r2/firestore-metadata', (_req, res) => {
+  app.get('/api/cloudflare/r2/firestore-metadata', requireAuth, (_req, res) => {
     try {
       const files = fs
         .readdirSync(R2_FIRESTORE_META_DIR)
