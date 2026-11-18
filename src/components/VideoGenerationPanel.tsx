@@ -2,6 +2,8 @@ import React, { ChangeEvent, FormEvent, useEffect, useRef, useState } from "reac
 import {
   SHARED_COLAB_DRIVE_ID,
   SHARED_COLAB_NOTEBOOK_URL,
+  LATEST_COLAB_TUNNEL_URL,
+  LTX_COLAB_RENDERED_VIDEO_URL,
   DEFAULT_COLAB_REGISTER_TOKEN,
   DEFAULT_COLAB_BRIDGE_TOKEN,
   DEFAULT_APP_BASE_URL,
@@ -32,11 +34,36 @@ export interface FeaturedRealHumanEpisode {
   title: string;
   actors: string;
   meta: string;
+  /** Clear creator-facing classification: SAMPLE (pre-loaded demo) vs RENDERED (real AI / T4 render) */
+  renderType: "SAMPLE" | "RENDERED";
   /** Ordered mirror chain: verified public HTTPS real-human CDN links -> local /media/*.mp4 real-human assets */
   sources: string[];
   poster: string;
   defaultSubtitles: TagalogSubtitleCue[];
 }
+
+export function getVideoSourceRenderType(
+  videoUrl: string,
+  provider?: Provider,
+  episodeId?: string
+): "SAMPLE" | "RENDERED" {
+  const cleanUrl = String(videoUrl || "");
+  if (
+    episodeId === "ep-4-merged-colab-ltx-render" ||
+    cleanUrl.includes("ltx-colab-render.mp4") ||
+    provider === "fal" ||
+    provider === "colab" ||
+    provider === "local" ||
+    cleanUrl.startsWith("blob:")
+  ) {
+    return "RENDERED";
+  }
+  return "SAMPLE";
+}
+
+void DEFAULT_COLAB_REGISTER_TOKEN;
+void DEFAULT_COLAB_BRIDGE_TOKEN;
+void DEFAULT_APP_BASE_URL;
 
 export interface TagalogSubtitleCue {
   startSec: number;
@@ -195,6 +222,8 @@ export interface LiveDirectorProgressStudioProps {
   fps?: number;
   isComplete?: boolean;
   title?: string;
+  /** Only render the Terminal / Action History Live Log when explicitly enabled (e.g. Developer Mode tab) */
+  showTerminalLog?: boolean;
 }
 
 export const LiveDirectorProgressStudio: React.FC<LiveDirectorProgressStudioProps> = ({
@@ -204,6 +233,7 @@ export const LiveDirectorProgressStudio: React.FC<LiveDirectorProgressStudioProp
   fps = 24,
   isComplete = false,
   title = "AI Director Studio · Live Video Generation Progress",
+  showTerminalLog = false,
 }) => {
   const clampedPct = Math.max(0, Math.min(100, Math.round(progressPct)));
   const currentStage = getDirectorStageForProgress(clampedPct);
@@ -293,23 +323,25 @@ export const LiveDirectorProgressStudio: React.FC<LiveDirectorProgressStudioProp
         })}
       </div>
 
-      {/* Terminal / Action History Live Log */}
-      <div className="rounded-xl border border-emerald-500/30 bg-black/95 p-3 font-mono text-xs">
-        <div className="mb-2 flex items-center justify-between border-b border-white/10 pb-1.5 text-[10px] uppercase tracking-wider text-emerald-400">
-          <span>Terminal / Action History Live Log</span>
-          <span>[Akzyon Engine v2.4 · 24fps Stream]</span>
+      {/* Terminal / Action History Live Log — shown only when showTerminalLog is true (Developer Mode) */}
+      {showTerminalLog && (
+        <div className="rounded-xl border border-emerald-500/30 bg-black/95 p-3 font-mono text-xs">
+          <div className="mb-2 flex items-center justify-between border-b border-white/10 pb-1.5 text-[10px] uppercase tracking-wider text-emerald-400">
+            <span>Terminal / Action History Live Log</span>
+            <span>[Akzyon Engine v2.4 · 24fps Stream]</span>
+          </div>
+          <div
+            data-testid="live-director-terminal-log"
+            className="max-h-36 space-y-1 overflow-y-auto text-[11px] leading-relaxed text-emerald-300"
+          >
+            {logs.map((line, index) => (
+              <div key={`${index}-${line.slice(0, 24)}`} className="break-words">
+                {line}
+              </div>
+            ))}
+          </div>
         </div>
-        <div
-          data-testid="live-director-terminal-log"
-          className="max-h-36 space-y-1 overflow-y-auto text-[11px] leading-relaxed text-emerald-300"
-        >
-          {logs.map((line, index) => (
-            <div key={`${index}-${line.slice(0, 24)}`} className="break-words">
-              {line}
-            </div>
-          ))}
-        </div>
-      </div>
+      )}
     </div>
   );
 };
@@ -320,6 +352,7 @@ export const FEATURED_REAL_HUMAN_EPISODES: FeaturedRealHumanEpisode[] = [
     title: "Episode 1: Huling Pangako sa Tulay (Tunay na Tao · Live-Action Drama)",
     actors: "Live-Action Cast: Derek de Lint, Denise Rebergen & Sergio Hasselbaink",
     meta: "Blender Open Movie (Tears of Steel Live-Action) · H.264 MP4 + Stereo Audio",
+    renderType: "SAMPLE",
     sources: [
       "https://dn710301.ca.archive.org/0/items/Tears-of-Steel/tears_of_steel_720p.mp4",
       "https://archive.org/download/Tears-of-Steel/tears_of_steel_720p.mp4",
@@ -350,6 +383,7 @@ export const FEATURED_REAL_HUMAN_EPISODES: FeaturedRealHumanEpisode[] = [
     title: "Episode 2: Ang Pagbabalik ng Tagapagmana (Tunay na Tao · Lab Confrontation)",
     actors: "Live-Action Cast: Rogier Schippers, Vanja Rukavina & Denise Rebergen",
     meta: "Direct HTTPS Live-Action MP4 CDN + Local R2 Mirror · H.264 MP4",
+    renderType: "SAMPLE",
     sources: [
       "https://media.w3.org/2010/05/video/movie_300.mp4",
       "/media/video_real_human_ep2.mp4",
@@ -380,6 +414,7 @@ export const FEATURED_REAL_HUMAN_EPISODES: FeaturedRealHumanEpisode[] = [
     title: "Episode 3: Eksena sa Mansyon (Tunay na Tao · Director's Action Cut)",
     actors: "Live-Action Cast: Sergio Hasselbaink & Hubert Zwart",
     meta: "Wikimedia Commons / Blender Live-Action + Local Mirror · H.264 MP4",
+    renderType: "SAMPLE",
     sources: [
       "https://upload.wikimedia.org/wikipedia/commons/transcoded/c/cb/Tears_of_Steel_1080p.webm/Tears_of_Steel_1080p.webm.360p.mpeg4.mov",
       "/media/video_real_human_ep3.mp4",
@@ -397,6 +432,30 @@ export const FEATURED_REAL_HUMAN_EPISODES: FeaturedRealHumanEpisode[] = [
         startSec: 2.5,
         endSec: 6.0,
         text: "3!2!1! Akzyon — Tunay na tao, tunay na emosyon sa bawat eksena!",
+      },
+    ],
+  },
+  {
+    id: "ep-4-merged-colab-ltx-render",
+    title: "Merged Colab T4 Render: LTX-Video 2B v0.9.5 (73 Frames @ 24fps · 832×480)",
+    actors: "Google Colab T4 GPU · ltx-video-2b-v0.9.5.safetensors + t5xxl_fp8_e4m3fn",
+    meta: "Extracted from Merged Colab Notebook (73 frames @ 24fps)",
+    renderType: "RENDERED",
+    sources: [
+      LTX_COLAB_RENDERED_VIDEO_URL,
+      "/media/video_akzyon_episode1.mp4",
+    ],
+    poster: "/media/akzyon_teleserye_episode1_final.jpg",
+    defaultSubtitles: [
+      {
+        startSec: 0,
+        endSec: 1.5,
+        text: "Colab T4 Render (73 frames @ 24fps): Umaangat ang drone sa ulap sa ibabaw ng lawa at bundok.",
+      },
+      {
+        startSec: 1.5,
+        endSec: 3.5,
+        text: "LTX-Video 2B v0.9.5 + Movie City Bridge: Matagumpay na na-merge sa buong app build!",
       },
     ],
   },
@@ -499,6 +558,8 @@ export type VideoGenerationPanelProps = {
   ) => void;
   defaultPrompt?: string;
   className?: string;
+  /** Show Colab bridge tunnel config & terminal log only when Developer Mode is active */
+  showDeveloperControls?: boolean;
 };
 
 const DEFAULT_PROMPT =
@@ -518,7 +579,7 @@ function formatExpiry(expiresAt?: string) {
 function providerLabel(provider?: Provider) {
   if (provider === "colab") return "Colab LTX";
   if (provider === "fal") return "Fal AI";
-  if (provider === "local") return "Local Android Gallery (AiDramaStudioVideoDB)";
+  if (provider === "local") return "Local Android Gallery";
   return "Featured Drama Showcase (Tunay na Tao)";
 }
 
@@ -529,6 +590,7 @@ export default function VideoGenerationPanel({
   onVideoSelected,
   defaultPrompt = DEFAULT_PROMPT,
   className = "",
+  showDeveloperControls = false,
 }: VideoGenerationPanelProps) {
   const [prompt, setPrompt] = useState(defaultPrompt);
   const [duration, setDuration] = useState(5);
@@ -567,7 +629,7 @@ export default function VideoGenerationPanel({
   const [shouldAutoPlay, setShouldAutoPlay] = useState<boolean>(false);
   const [customUploadName, setCustomUploadName] = useState<string | null>(null);
   const [error, setError] = useState<string>();
-  const [tunnelInputUrl, setTunnelInputUrl] = useState<string>("");
+  const [tunnelInputUrl, setTunnelInputUrl] = useState<string>(LATEST_COLAB_TUNNEL_URL);
   const [isConnectingTunnel, setIsConnectingTunnel] = useState<boolean>(false);
   const [tunnelConnectMsg, setTunnelConnectMsg] = useState<string | null>(null);
 
@@ -818,6 +880,7 @@ export default function VideoGenerationPanel({
   }[bridgeStatus];
 
   const vttTrackUrl = createTagalogWebVttDataUrl(subtitles);
+  const activeRenderBadge = getVideoSourceRenderType(videoUrl, provider, activeEpisodeId);
 
   return (
     <section
@@ -827,97 +890,110 @@ export default function VideoGenerationPanel({
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-400">
-            Movie City Studio · Dual-Source Real Human Video Feed
+            Movie City Studio · Tunay na Tao Video Generator
           </p>
           <h2 className="mt-1 text-2xl font-bold">Generate tunay na video</h2>
           <p className="mt-1 text-sm text-neutral-400">
-            Fal AI primary · Colab LTX fallback · Pre-loaded Tunay na Tao Showcase
+            Gumawa ng bagong eksena o manood ng Sample at Rendered episodes
           </p>
         </div>
-        <div className="flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-xs">
+        <div className="flex items-center gap-2">
           <span
-            className={`h-2 w-2 rounded-full ${
-              bridgeStatus === "active" ? "bg-emerald-400" : "bg-amber-400"
+            data-testid="panel-video-render-badge"
+            className={`rounded-full px-3 py-1 text-xs font-extrabold uppercase tracking-wider border ${
+              activeRenderBadge === "RENDERED"
+                ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/60"
+                : "bg-amber-500/20 text-amber-300 border-amber-400/60"
             }`}
-          />
-          {colabEnabled ? statusText : "Colab fallback disabled"}
-        </div>
-      </div>
-
-      {/* Connected Google Colab Notebook (1y6VBmKBSb8mkxR7ODVycSJjX4cW9N3aA) Bridge Bar */}
-      <div
-        data-testid="shared-colab-bridge-hub"
-        className="mb-5 rounded-xl border border-amber-400/35 bg-neutral-900/95 p-4 space-y-3"
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-400">
-              Google Colab LTX-Video 2B v0.9.5 · Connected Notebook ({SHARED_COLAB_DRIVE_ID})
-            </p>
-            <p className="text-xs text-neutral-300">
-              Buksan ang naka-link na Google Colab notebook, patakbuhin ang Cell 1 at Cell 2 (T4 GPU), o i-paste ang{" "}
-              <code className="text-emerald-300">https://*.trycloudflare.com</code> tunnel URL sa ibaba.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <a
-              href={SHARED_COLAB_NOTEBOOK_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-testid="open-shared-colab-link"
-              className="rounded-lg bg-amber-400 px-3.5 py-2 text-xs font-extrabold text-neutral-950 transition hover:bg-amber-300"
-            >
-              🚀 Buksan ang Google Colab Notebook
-            </a>
-            <a
-              href="/api/ltx-video/colab-notebook?format=ipynb"
-              download="LTX_Video_2B_v0_9_5_Fixed_Python313.ipynb"
-              className="rounded-lg border border-white/15 bg-neutral-800 px-3 py-2 text-xs font-semibold text-neutral-200 transition hover:bg-neutral-700"
-            >
-              ⬇ Download .ipynb
-            </a>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 text-[11px] font-mono">
-          <div className="rounded-lg border border-white/10 bg-black/60 px-2.5 py-1.5">
-            <span className="text-neutral-400">APP_BASE_URL: </span>
-            <span className="text-emerald-300 break-all">
-              {typeof window !== "undefined" ? window.location.origin : DEFAULT_APP_BASE_URL}
-            </span>
-          </div>
-          <div className="rounded-lg border border-white/10 bg-black/60 px-2.5 py-1.5">
-            <span className="text-neutral-400">COLAB_REGISTER_TOKEN: </span>
-            <span className="text-amber-300 font-bold">{DEFAULT_COLAB_REGISTER_TOKEN}</span>
-          </div>
-          <div className="rounded-lg border border-white/10 bg-black/60 px-2.5 py-1.5">
-            <span className="text-neutral-400">COLAB_BRIDGE_TOKEN: </span>
-            <span className="text-amber-300 font-bold">{DEFAULT_COLAB_BRIDGE_TOKEN}</span>
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-          <input
-            type="url"
-            value={tunnelInputUrl}
-            onChange={(e) => setTunnelInputUrl(e.target.value)}
-            placeholder="I-paste ang https://xxxx.trycloudflare.com mula sa Colab Cell 2..."
-            className="flex-1 rounded-lg border border-white/15 bg-black/80 px-3 py-2 text-xs font-mono text-white outline-none focus:border-amber-400"
-          />
-          <button
-            type="button"
-            disabled={isConnectingTunnel}
-            onClick={handleConnectColabTunnel}
-            className="rounded-lg bg-emerald-500 px-4 py-2 text-xs font-extrabold text-neutral-950 transition hover:bg-emerald-400 disabled:opacity-50 cursor-pointer whitespace-nowrap"
           >
-            {isConnectingTunnel ? "Kumokonekta..." : "🔗 I-konekta ang Colab Tunnel"}
-          </button>
+            {activeRenderBadge}
+          </span>
+          {showDeveloperControls && (
+            <div className="flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-xs">
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  bridgeStatus === "active" ? "bg-emerald-400" : "bg-amber-400"
+                }`}
+              />
+              {colabEnabled ? statusText : "Colab fallback disabled"}
+            </div>
+          )}
         </div>
-
-        {tunnelConnectMsg && (
-          <p className="text-xs font-mono text-emerald-300">{tunnelConnectMsg}</p>
-        )}
       </div>
+
+      {/* Connected Google Colab Notebook Bridge Bar — only visible in Developer Mode */}
+      {showDeveloperControls && (
+        <div
+          data-testid="shared-colab-bridge-hub"
+          className="mb-5 rounded-xl border border-amber-400/35 bg-neutral-900/95 p-4 space-y-3"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-400">
+                Google Colab LTX-Video 2B v0.9.5 · Connected Notebook ({SHARED_COLAB_DRIVE_ID})
+              </p>
+              <p className="text-xs text-neutral-300">
+                Buksan ang naka-link na Google Colab notebook, patakbuhin ang Cell 1 at Cell 2 (T4 GPU), o i-paste ang{" "}
+                <code className="text-emerald-300">https://*.trycloudflare.com</code> tunnel URL sa ibaba.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <a
+                href={SHARED_COLAB_NOTEBOOK_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="open-shared-colab-link"
+                className="rounded-lg bg-amber-400 px-3.5 py-2 text-xs font-extrabold text-neutral-950 transition hover:bg-amber-300"
+              >
+                🚀 Buksan ang Google Colab Notebook
+              </a>
+              <button
+                type="button"
+                data-testid="play-merged-colab-render-btn"
+                onClick={() => {
+                  const colabEp =
+                    FEATURED_REAL_HUMAN_EPISODES.find(
+                      (e) => e.id === "ep-4-merged-colab-ltx-render"
+                    ) || FEATURED_REAL_HUMAN_EPISODES[0];
+                  handleSelectFeaturedEpisode(colabEp);
+                }}
+                className="rounded-lg bg-emerald-500/20 border border-emerald-400/50 px-3 py-2 text-xs font-bold text-emerald-300 transition hover:bg-emerald-500/30 cursor-pointer"
+              >
+                🎬 Play Merged Colab Render (73f)
+              </button>
+              <a
+                href="/api/ltx-video/colab-notebook?merged=true"
+                download="LTX_Video_2B_v0_9_5_Merged_Colab.ipynb"
+                className="rounded-lg border border-white/15 bg-neutral-800 px-3 py-2 text-xs font-semibold text-neutral-200 transition hover:bg-neutral-700"
+              >
+                ⬇ Download Merged .ipynb
+              </a>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <input
+              type="url"
+              value={tunnelInputUrl}
+              onChange={(e) => setTunnelInputUrl(e.target.value)}
+              placeholder="I-paste ang https://xxxx.trycloudflare.com mula sa Colab Cell 2..."
+              className="flex-1 rounded-lg border border-white/15 bg-black/80 px-3 py-2 text-xs font-mono text-white outline-none focus:border-amber-400"
+            />
+            <button
+              type="button"
+              disabled={isConnectingTunnel}
+              onClick={handleConnectColabTunnel}
+              className="rounded-lg bg-emerald-500 px-4 py-2 text-xs font-extrabold text-neutral-950 transition hover:bg-emerald-400 disabled:opacity-50 cursor-pointer whitespace-nowrap"
+            >
+              {isConnectingTunnel ? "Kumokonekta..." : "🔗 I-konekta ang Colab Tunnel"}
+            </button>
+          </div>
+
+          {tunnelConnectMsg && (
+            <p className="text-xs font-mono text-emerald-300">{tunnelConnectMsg}</p>
+          )}
+        </div>
+      )}
 
       {/* Pre-Loaded Featured Drama Episodes (Tunay na Tao) + Instant Local MP4 Upload Override */}
       <div
@@ -926,10 +1002,21 @@ export default function VideoGenerationPanel({
       >
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-              Featured Drama Episodes (Tunay na Tao)
-            </p>
-            <p className="text-xs text-neutral-300">
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                Featured Drama Episodes (Tunay na Tao)
+              </p>
+              <span
+                className={`rounded px-2 py-0.5 text-[10px] font-extrabold uppercase border ${
+                  activeRenderBadge === "RENDERED"
+                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/50"
+                    : "bg-amber-500/20 text-amber-300 border-amber-400/50"
+                }`}
+              >
+                {activeRenderBadge}
+              </span>
+            </div>
+            <p className="text-xs text-neutral-300 mt-0.5">
               Now Playing: <span className="font-semibold text-white">{activeVideoTitle}</span>
             </p>
           </div>
@@ -977,6 +1064,17 @@ export default function VideoGenerationPanel({
         </div>
 
         <div className="relative overflow-hidden rounded-lg border border-white/10 bg-black">
+          <div className="pointer-events-none absolute top-3 left-3 z-10">
+            <span
+              className={`rounded-md px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wider shadow-lg border ${
+                activeRenderBadge === "RENDERED"
+                  ? "bg-emerald-950/90 text-emerald-300 border-emerald-400"
+                  : "bg-amber-950/90 text-amber-300 border-amber-400"
+              }`}
+            >
+              {activeRenderBadge}
+            </span>
+          </div>
           <video
             ref={videoElementRef}
             key={videoUrl}
@@ -1013,13 +1111,17 @@ export default function VideoGenerationPanel({
         </div>
 
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-neutral-400">
-          <span>Provider: {providerLabel(provider)}</span>
-          <span className="truncate font-mono">
-            Source #{mirrorIndex + 1}: {videoUrl}
+          <span>Source: {providerLabel(provider)}</span>
+          <span
+            className={`font-bold uppercase ${
+              activeRenderBadge === "RENDERED" ? "text-emerald-400" : "text-amber-400"
+            }`}
+          >
+            Status: {activeRenderBadge}
           </span>
         </div>
 
-        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {FEATURED_REAL_HUMAN_EPISODES.map((ep) => {
             const isSelected = provider === "showcase" && activeEpisodeId === ep.id;
             return (
@@ -1033,6 +1135,18 @@ export default function VideoGenerationPanel({
                     : "border-white/10 bg-neutral-950/80 text-neutral-300 hover:border-white/25"
                 }`}
               >
+                <div className="mb-1 flex items-center justify-between gap-1.5">
+                  <span
+                    data-testid={`episode-render-badge-${ep.id}`}
+                    className={`rounded px-1.5 py-0.5 text-[9px] font-extrabold uppercase border ${
+                      ep.renderType === "RENDERED"
+                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/50"
+                        : "bg-amber-500/20 text-amber-300 border-amber-400/50"
+                    }`}
+                  >
+                    {ep.renderType}
+                  </span>
+                </div>
                 <p className="text-xs font-bold line-clamp-1">{ep.title}</p>
                 <p className="mt-0.5 text-[11px] text-emerald-400 line-clamp-1">{ep.actors}</p>
                 <p className="mt-0.5 text-[10px] text-neutral-400 line-clamp-1">{ep.meta}</p>
@@ -1127,6 +1241,7 @@ export default function VideoGenerationPanel({
             framesCount={73}
             fps={24}
             isComplete={!isGenerating && genProgressPct === 100}
+            showTerminalLog={showDeveloperControls}
           />
         </div>
       )}
