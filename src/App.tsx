@@ -135,9 +135,30 @@ function formatDuration(sec: number): string {
   return `${String(mins).padStart(2, '0')}:${String(rem).padStart(2, '0')}`;
 }
 
+export const LS_DEVELOPER_MODE_KEY = 'ai_drama_studio_developer_mode_v1';
+void YouTubeStudioHub;
+void Youtube;
+
 export default function App() {
   const [studioWorkspace, setStudioWorkspace] = useState<'drama' | 'marilag'>('drama');
   const [activeTab, setActiveTab] = useState<AppTab>('render');
+  const [developerMode, setDeveloperMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(LS_DEVELOPER_MODE_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleDeveloperMode = (next: boolean) => {
+    setDeveloperMode(next);
+    try {
+      localStorage.setItem(LS_DEVELOPER_MODE_KEY, next ? 'true' : 'false');
+    } catch {}
+    if (!next) {
+      setStudioWorkspace('drama');
+    }
+  };
 
   // Configurable URLs (persisted in localStorage)
   const [liveHlsUrl, setLiveHlsUrl] = useState<string>(() => {
@@ -483,8 +504,16 @@ export default function App() {
 
   const featuredHeroVideo = gallery.length > 0 ? gallery[0] : null;
 
-  if (studioWorkspace === 'drama') {
-    return <AiDramaStudio onSwitchToRenderBackend={() => setStudioWorkspace('marilag')} />;
+  if (studioWorkspace === 'drama' || !developerMode) {
+    return (
+      <AiDramaStudio
+        developerMode={developerMode}
+        onToggleDeveloperMode={handleToggleDeveloperMode}
+        onSwitchToRenderBackend={
+          developerMode ? () => setStudioWorkspace('marilag') : undefined
+        }
+      />
+    );
   }
 
   return (
@@ -559,18 +588,7 @@ export default function App() {
               <SettingsIcon className="w-3.5 h-3.5" />
               <span>Settings</span>
             </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('youtube')}
-              className={`min-h-[40px] px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
-                activeTab === 'youtube'
-                  ? 'bg-red-600 text-white font-bold'
-                  : 'text-slate-300 hover:text-white'
-              }`}
-            >
-              <Youtube className="w-3.5 h-3.5" />
-              <span>YouTube API</span>
-            </button>
+            {/* YouTube API tab remains hidden per audit decision (mount unchanged) */}
             <button
               type="button"
               onClick={() => setActiveTab('drive')}
@@ -633,18 +651,7 @@ export default function App() {
 
         {/* Secondary Chip Bar for Optional Tabs on Mobile */}
         <div className="flex md:hidden items-center gap-1.5 pt-2.5 overflow-x-auto no-scrollbar">
-          <button
-            type="button"
-            onClick={() => setActiveTab('youtube')}
-            className={`min-h-[38px] px-3 py-1 rounded-lg text-xs font-semibold shrink-0 flex items-center gap-1 border ${
-              activeTab === 'youtube'
-                ? 'bg-red-600 text-white border-red-500 font-bold'
-                : 'bg-slate-900/90 text-slate-300 border-slate-800'
-            }`}
-          >
-            <Youtube className="w-3.5 h-3.5" />
-            <span>YouTube API</span>
-          </button>
+          {/* YouTube API mobile tab remains hidden per audit decision (mount unchanged) */}
           <button
             type="button"
             onClick={() => setActiveTab('drive')}

@@ -60,6 +60,8 @@ import {
   COLAB_SECRETS_SNIPPET,
   SHARED_COLAB_DRIVE_ID,
   SHARED_COLAB_NOTEBOOK_URL,
+  LATEST_COLAB_TUNNEL_URL,
+  LTX_COLAB_RENDERED_VIDEO_URL,
 } from '../utils/dramaStudioLogic';
 import {
   EXPO_SDK_COMPATIBILITY_MATRIX,
@@ -84,6 +86,7 @@ import VideoGenerationPanel, {
   buildTagalogSubtitlesFromPrompt,
   createTagalogWebVttDataUrl,
   triggerTagalogDubbingSpeech,
+  getVideoSourceRenderType,
 } from './VideoGenerationPanel';
 import MovieCityCatalogBrowser from './MovieCityCatalogBrowser';
 import {
@@ -144,13 +147,21 @@ import {
   R2WorkerGenerateMediaResult,
 } from '../services/cloudflareWorkerApi';
 
-type DramaBottomTab = 'home' | 'catalog' | 'projects' | 'studio' | 'tools' | 'settings';
+type DramaBottomTab =
+  | 'home'
+  | 'catalog'
+  | 'projects'
+  | 'studio'
+  | 'tools'
+  | 'settings'
+  | 'developer';
 type GenerationStepIndex = 0 | 1 | 2 | 3 | 4;
 type ActiveToolModal = 'video' | 'image' | 'effects' | 'story' | null;
 
 const LS_PROJECTS_KEY = 'ai_drama_studio_projects_v2';
 const LS_SETTINGS_KEY = 'ai_drama_studio_settings_v2';
 const LS_ONBOARDING_KEY = 'ai_drama_studio_onboarded_v2';
+const LS_DEVELOPER_MODE_KEY = 'ai_drama_studio_developer_mode_v1';
 
 // IndexedDB helper (AiDramaStudioVideoDB) for storing custom & combined video blobs offline
 const IDB_NAME = AI_DRAMA_STUDIO_VIDEO_DB_NAME;
@@ -372,10 +383,37 @@ function createDefaultStarterProjects(): DramaProject[] {
 
 interface AiDramaStudioProps {
   onSwitchToRenderBackend?: () => void;
+  developerMode?: boolean;
+  onToggleDeveloperMode?: (next: boolean) => void;
 }
 
-export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBackend }) => {
+export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({
+  onSwitchToRenderBackend,
+  developerMode: externalDeveloperMode,
+  onToggleDeveloperMode,
+}) => {
   const [bottomTab, setBottomTab] = useState<DramaBottomTab>('home');
+  const [internalDeveloperMode, setInternalDeveloperMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(LS_DEVELOPER_MODE_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const isDeveloperMode =
+    externalDeveloperMode !== undefined ? externalDeveloperMode : internalDeveloperMode;
+
+  const handleSetDeveloperMode = (next: boolean) => {
+    setInternalDeveloperMode(next);
+    try {
+      localStorage.setItem(LS_DEVELOPER_MODE_KEY, next ? 'true' : 'false');
+    } catch {}
+    onToggleDeveloperMode?.(next);
+    if (!next && bottomTab === 'developer') {
+      setBottomTab('settings');
+    }
+  };
 
   // User Settings State (persisted in localStorage)
   const [userName, setUserName] = useState<string>('Direk!');
@@ -661,9 +699,7 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
   // LTX-Video 2B v0.9.5 ComfyUI Text-to-Video Studio State
   const [ltxParams, setLtxParams] = useState<LtxVideoParams>(DEFAULT_LTX_VIDEO_PARAMS);
   const [ltxGenerating, setLtxGenerating] = useState<boolean>(false);
-  const [ltxVideoUrl, setLtxVideoUrl] = useState<string>(
-    FEATURED_REAL_HUMAN_EPISODES[0].sources[0]
-  );
+  const [ltxVideoUrl, setLtxVideoUrl] = useState<string>(LTX_COLAB_RENDERED_VIDEO_URL);
   const [ltxSeedUsed, setLtxSeedUsed] = useState<number>(0);
   const [ltxError, setLtxError] = useState<string | null>(null);
   const [showLtxColabCode, setShowLtxColabCode] = useState<boolean>(false);
@@ -1855,14 +1891,6 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
                 <span className="font-display font-extrabold uppercase text-[11px] sm:text-base tracking-tight whitespace-nowrap shrink-0">
                   3!2!1! Akzyon
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setBottomTab('settings')}
-                  title="Open MovieCityAI Unified Backend Architecture"
-                  className="hidden sm:inline-flex text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 bg-[#ff3e3e]/15 hover:bg-[#ff3e3e]/25 text-[#ff3e3e] border border-[#ff3e3e]/40 font-bold cursor-pointer whitespace-nowrap shrink-0"
-                >
-                  Powered by {MOVIECITY_AI_ENGINE_ID}
-                </button>
               </div>
               <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-mono text-[#e4e4e7]/70 truncate">
                 <span className="truncate">
@@ -1870,19 +1898,12 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
                     ? 'Maligayang pagbabalik, Direk!'
                     : 'Welcome back, Direk!'}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setBottomTab('settings')}
-                  className="sm:hidden text-[9px] font-mono uppercase px-1.5 py-0.2 bg-[#ff3e3e]/15 text-[#ff3e3e] border border-[#ff3e3e]/40 font-bold shrink-0 cursor-pointer"
-                >
-                  {MOVIECITY_AI_ENGINE_ID}
-                </button>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-            {onSwitchToRenderBackend && (
+            {isDeveloperMode && onSwitchToRenderBackend && (
               <button
                 type="button"
                 aria-label="FFmpeg & YouTube Hub"
@@ -1890,7 +1911,7 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
                 className="min-h-[36px] sm:min-h-[38px] px-2 sm:px-3 py-1.5 text-xs font-display font-extrabold uppercase border-[1.5px] border-[#e4e4e7] bg-transparent hover:bg-white/10 text-[#e4e4e7] flex items-center gap-1.5 cursor-pointer"
               >
                 <Film className="w-3.5 h-3.5 text-[#ff3e3e]" />
-                <span className="hidden md:inline">FFmpeg Hub</span>
+                <span className="hidden md:inline">Marilag Workspace</span>
               </button>
             )}
             <a
@@ -2007,8 +2028,9 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
               </button>
             </section>
 
-            {/* ==================== MOVIE CITY STUDIO: GENERATE TUNAY NA VIDEO (FAL AI PRIMARY · COLAB LTX FALLBACK) ==================== */}
+            {/* ==================== MOVIE CITY STUDIO: GENERATE TUNAY NA VIDEO ==================== */}
             <VideoGenerationPanel
+              showDeveloperControls={false}
               onVideoSelected={(url, title) => {
                 setFeaturedEpisodeVideoUrl(url);
                 setFeaturedEpisodeTitle(title);
@@ -2028,9 +2050,26 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
                 <div className="space-y-1 border-l-[3px] border-[#00ff41] pl-3">
                   <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-[#00ff41]">
-                    <span>DUAL-SOURCE REAL HUMAN VIDEO FEED · CORS CDN + LOCAL MIRROR</span>
+                    <span>TUNAY NA TAO DRAMA SHOWCASE</span>
                     <span>·</span>
-                    <span className="text-[#e4e4e7]/70">INDEXEDDB (AiDramaStudioVideoDB) OFFLINE READY</span>
+                    <span
+                      data-testid="home-video-render-badge"
+                      className={`px-2 py-0.5 rounded font-extrabold border ${
+                        getVideoSourceRenderType(
+                          featuredEpisodeVideoUrl,
+                          undefined,
+                          featuredEpisodeId
+                        ) === 'RENDERED'
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/60'
+                          : 'bg-amber-500/20 text-amber-300 border-amber-400/60'
+                      }`}
+                    >
+                      {getVideoSourceRenderType(
+                        featuredEpisodeVideoUrl,
+                        undefined,
+                        featuredEpisodeId
+                      )}
+                    </span>
                   </div>
                   <h2 className="text-lg sm:text-xl font-display font-extrabold uppercase text-[#e4e4e7]">
                     Featured Drama Episodes (Tunay na Tao)
@@ -2075,6 +2114,25 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
                 <div className="lg:col-span-8 space-y-2">
                   <div className="aspect-video bg-black border border-white/15 overflow-hidden relative">
+                    <div className="pointer-events-none absolute top-3 left-3 z-10">
+                      <span
+                        className={`rounded-md px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wider shadow-lg border ${
+                          getVideoSourceRenderType(
+                            featuredEpisodeVideoUrl,
+                            undefined,
+                            featuredEpisodeId
+                          ) === 'RENDERED'
+                            ? 'bg-emerald-950/90 text-emerald-300 border-emerald-400'
+                            : 'bg-amber-950/90 text-amber-300 border-amber-400'
+                        }`}
+                      >
+                        {getVideoSourceRenderType(
+                          featuredEpisodeVideoUrl,
+                          undefined,
+                          featuredEpisodeId
+                        )}
+                      </span>
+                    </div>
                     <video
                       key={featuredEpisodeVideoUrl}
                       data-testid="home-featured-video-player"
@@ -2112,6 +2170,23 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
                       Now Playing: {featuredEpisodeTitle}
                     </span>
                     <div className="flex items-center gap-2">
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase border ${
+                          getVideoSourceRenderType(
+                            featuredEpisodeVideoUrl,
+                            undefined,
+                            featuredEpisodeId
+                          ) === 'RENDERED'
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/50'
+                            : 'bg-amber-500/20 text-amber-300 border-amber-400/50'
+                        }`}
+                      >
+                        {getVideoSourceRenderType(
+                          featuredEpisodeVideoUrl,
+                          undefined,
+                          featuredEpisodeId
+                        )}
+                      </span>
                       <button
                         type="button"
                         onClick={() => triggerTagalogDubbingSpeech(masterSubtitles, true)}
@@ -2119,9 +2194,6 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
                       >
                         🔊 I-play ang Tagalog Dub
                       </button>
-                      <span className="text-[#e4e4e7]/60 truncate max-w-xs">
-                        Mirror #{featuredMirrorIdx + 1}: {featuredEpisodeVideoUrl}
-                      </span>
                     </div>
                   </div>
                 </div>
@@ -2144,811 +2216,23 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-bold">{ep.title}</span>
+                          <span
+                            className={`rounded px-1.5 py-0.5 text-[9px] font-extrabold uppercase border ${
+                              ep.renderType === 'RENDERED'
+                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/50'
+                                : 'bg-amber-500/20 text-amber-300 border-amber-400/50'
+                            }`}
+                          >
+                            {ep.renderType}
+                          </span>
                           <Play className="w-3.5 h-3.5 text-[#ff3e3e] shrink-0 fill-current" />
                         </div>
+                        <div className="text-xs font-bold">{ep.title}</div>
                         <div className="text-[10px] font-mono text-[#00ff41]">{ep.actors}</div>
                         <div className="text-[10px] font-mono text-[#e4e4e7]/50">{ep.meta}</div>
                       </button>
                     );
                   })}
-
-                  <button
-                    type="button"
-                    disabled={r2E2eRunning}
-                    onClick={() =>
-                      handleRunR2MediaPipeline(
-                        'video',
-                        'Dramatic Tagalog teleserye confrontation in Manila rain at night, cinematic camera dolly zoom'
-                      )
-                    }
-                    className="w-full min-h-[42px] px-3 py-2 bg-[#00ff41] hover:bg-[#00ff41]/90 disabled:opacity-50 text-[#0c0c0e] font-display font-extrabold uppercase text-xs flex items-center justify-center gap-1.5 cursor-pointer mt-2"
-                  >
-                    <Film className="w-4 h-4" />
-                    <span>
-                      {r2E2eRunning
-                        ? 'Generating New Video to R2...'
-                        : '+ Generate Bagong Video → R2'}
-                    </span>
-                  </button>
-                </div>
-              </div>
-            </section>
-
-            {/* ==================== LTX-VIDEO 2B v0.9.5 TEXT-TO-VIDEO STUDIO & PYTHON 3.13 COLAB FIX ==================== */}
-            <section
-              data-testid="ltx-video-studio-panel"
-              className="p-5 sm:p-6 bg-[#141417] border border-white/15 space-y-5"
-            >
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/10 pb-4">
-                <div className="space-y-1 border-l-[3px] border-[#ff3e3e] pl-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest px-2 py-0.5 bg-[#ff3e3e] text-[#0c0c0e]">
-                      LTX-VIDEO 2B v0.9.5 · COMFYUI PIPELINE
-                    </span>
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 bg-white/5 text-[#00ff41] border border-white/10">
-                      {ltxValidation.textEncoderFile}
-                    </span>
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 bg-sky-500/15 text-sky-300 border border-sky-500/30">
-                      PYTHON 3.13 (cp313) TORCHSDE + SDPA FIX READY
-                    </span>
-                  </div>
-                  <h2 className="text-lg sm:text-xl font-display font-extrabold uppercase text-[#e4e4e7] pt-1">
-                    LTX-Video Text-to-Video Studio (24fps · n+1 Frames · R2 Media Contract)
-                  </h2>
-                  <p className="text-xs text-[#e4e4e7]/65">
-                    Implements the LTX-Video ComfyUI contract (
-                    <code className="text-[#ff3e3e] font-mono">
-                      ltx-video-2b-v0.9.5.safetensors
-                    </code>{' '}
-                    +{' '}
-                    <code className="text-[#00ff41] font-mono">
-                      {ltxValidation.textEncoderFile}
-                    </code>
-                    ) and fixes the Google Colab Python 3.13{' '}
-                    <code className="text-amber-300 font-mono">
-                      ModuleNotFoundError: No module named 'torchsde'
-                    </code>{' '}
-                    caused by <code className="font-mono">xformers==0.0.29.post2</code> wheel build failure.
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 shrink-0">
-                  <a
-                    href={SHARED_COLAB_NOTEBOOK_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-testid="studio-open-shared-colab-btn"
-                    className="min-h-[38px] px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-300 font-mono font-bold uppercase text-xs flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Globe className="w-3.5 h-3.5" />
-                    <span>Open Colab ({SHARED_COLAB_DRIVE_ID.slice(0, 8)}…)</span>
-                  </a>
-                  <button
-                    type="button"
-                    data-testid="copy-fixed-ltx-colab-btn"
-                    onClick={() =>
-                      handleCopyText(
-                        'Fixed Python 3.13 LTX-Video Colab Script',
-                        buildFixedLtxColabScript(ltxParams)
-                      )
-                    }
-                    className="min-h-[38px] px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-300 font-mono font-bold uppercase text-xs flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Copy Fixed Colab Code</span>
-                  </button>
-                  <button
-                    type="button"
-                    data-testid="download-fixed-ltx-ipynb-btn"
-                    onClick={handleDownloadFixedLtxColabNotebook}
-                    className="min-h-[38px] px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 font-mono font-bold uppercase text-xs flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Download Fixed .ipynb</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-                {/* Left Column: LTX-Video Parameters */}
-                <div className="lg:col-span-7 space-y-3.5">
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <label className="text-xs font-bold text-[#e4e4e7]">
-                        positive_prompt (Detailed LTX-Video 24fps Prompt)
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setLtxParams((prev) => ({
-                            ...prev,
-                            positive_prompt:
-                              'Cinematic Filipino teleserye heroine Clara Montes standing in heavy Manila rain at night, neon reflections on wet cobblestone street, dramatic camera push-in, 35mm film grain, 24fps.',
-                          }))
-                        }
-                        className="text-[10px] font-mono text-[#ff3e3e] hover:underline cursor-pointer"
-                      >
-                        Load Manila Noir Preset
-                      </button>
-                    </div>
-                    <textarea
-                      data-testid="ltx-positive-prompt-input"
-                      rows={3}
-                      value={ltxParams.positive_prompt}
-                      onChange={(e) =>
-                        setLtxParams((prev) => ({ ...prev, positive_prompt: e.target.value }))
-                      }
-                      className="w-full bg-[#0c0c0e] border border-white/15 px-3 py-2 text-xs text-white font-mono"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="block text-xs font-bold text-[#e4e4e7]/80">
-                      negative_prompt
-                    </label>
-                    <input
-                      type="text"
-                      value={ltxParams.negative_prompt}
-                      onChange={(e) =>
-                        setLtxParams((prev) => ({ ...prev, negative_prompt: e.target.value }))
-                      }
-                      className="w-full min-h-[38px] bg-[#0c0c0e] border border-white/15 px-3 py-1.5 text-xs text-slate-300 font-mono"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    <div>
-                      <label className="block text-[10px] font-mono uppercase text-[#e4e4e7]/60 mb-1">
-                        width (÷32)
-                      </label>
-                      <select
-                        data-testid="ltx-width-select"
-                        value={ltxParams.width}
-                        onChange={(e) =>
-                          setLtxParams((prev) => ({ ...prev, width: Number(e.target.value) }))
-                        }
-                        className="w-full min-h-[38px] bg-[#0c0c0e] border border-white/15 px-2.5 text-xs text-white font-mono"
-                      >
-                        <option value={832}>832 px (Default)</option>
-                        <option value={768}>768 px</option>
-                        <option value={640}>640 px</option>
-                        <option value={512}>512 px</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-mono uppercase text-[#e4e4e7]/60 mb-1">
-                        height (÷32)
-                      </label>
-                      <select
-                        data-testid="ltx-height-select"
-                        value={ltxParams.height}
-                        onChange={(e) =>
-                          setLtxParams((prev) => ({ ...prev, height: Number(e.target.value) }))
-                        }
-                        className="w-full min-h-[38px] bg-[#0c0c0e] border border-white/15 px-2.5 text-xs text-white font-mono"
-                      >
-                        <option value={480}>480 px (Default)</option>
-                        <option value={512}>512 px</option>
-                        <option value={384}>384 px</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-mono uppercase text-[#e4e4e7]/60 mb-1">
-                        frames (n+1 rule)
-                      </label>
-                      <select
-                        data-testid="ltx-frames-select"
-                        value={ltxParams.frames}
-                        onChange={(e) =>
-                          setLtxParams((prev) => ({ ...prev, frames: Number(e.target.value) }))
-                        }
-                        className="w-full min-h-[38px] bg-[#0c0c0e] border border-white/15 px-2.5 text-xs text-white font-mono"
-                      >
-                        <option value={49}>49 (48f · 2.0s)</option>
-                        <option value={73}>73 (72f · 3.0s)</option>
-                        <option value={97}>97 (96f · 4.0s)</option>
-                        <option value={121}>121 (120f · 5.0s)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-mono uppercase text-[#e4e4e7]/60 mb-1">
-                        sampler_name
-                      </label>
-                      <select
-                        data-testid="ltx-sampler-select"
-                        value={ltxParams.sampler_name}
-                        onChange={(e) =>
-                          setLtxParams((prev) => ({
-                            ...prev,
-                            sampler_name: e.target.value as LtxSamplerName,
-                          }))
-                        }
-                        className="w-full min-h-[38px] bg-[#0c0c0e] border border-white/15 px-2.5 text-xs text-white font-mono"
-                      >
-                        {LTX_SAMPLERS.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    <div>
-                      <label className="block text-[10px] font-mono uppercase text-[#e4e4e7]/60 mb-1">
-                        steps
-                      </label>
-                      <input
-                        type="number"
-                        min={5}
-                        max={100}
-                        value={ltxParams.steps}
-                        onChange={(e) =>
-                          setLtxParams((prev) => ({
-                            ...prev,
-                            steps: Math.max(5, Number(e.target.value) || 25),
-                          }))
-                        }
-                        className="w-full min-h-[38px] bg-[#0c0c0e] border border-white/15 px-2.5 text-xs text-white font-mono"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-mono uppercase text-[#e4e4e7]/60 mb-1">
-                        cfg_scale
-                      </label>
-                      <input
-                        type="number"
-                        step="0.05"
-                        min={1}
-                        max={10}
-                        value={ltxParams.cfg_scale}
-                        onChange={(e) =>
-                          setLtxParams((prev) => ({
-                            ...prev,
-                            cfg_scale: Number(e.target.value) || 2.05,
-                          }))
-                        }
-                        className="w-full min-h-[38px] bg-[#0c0c0e] border border-white/15 px-2.5 text-xs text-white font-mono"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-mono uppercase text-[#e4e4e7]/60 mb-1">
-                        fps
-                      </label>
-                      <input
-                        type="number"
-                        min={12}
-                        max={60}
-                        value={ltxParams.fps}
-                        onChange={(e) =>
-                          setLtxParams((prev) => ({
-                            ...prev,
-                            fps: Math.max(12, Number(e.target.value) || 24),
-                          }))
-                        }
-                        className="w-full min-h-[38px] bg-[#0c0c0e] border border-white/15 px-2.5 text-xs text-white font-mono"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-mono uppercase text-[#e4e4e7]/60 mb-1">
-                        T5-XXL Encoder
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setLtxParams((prev) => ({
-                            ...prev,
-                            use_t5xxl_fp16: !prev.use_t5xxl_fp16,
-                          }))
-                        }
-                        className="w-full min-h-[38px] bg-[#0c0c0e] border border-white/15 px-2 text-[11px] font-mono font-bold text-[#00ff41] cursor-pointer"
-                      >
-                        {ltxParams.use_t5xxl_fp16 ? 't5xxl_fp16' : 't5xxl_fp8_e4m3fn'}
-                      </button>
-                    </div>
-                  </div>
-
-                  {ltxValidation.vramCrashRiskOnT4 && (
-                    <div
-                      data-testid="ltx-t4-vram-warning"
-                      className="bg-amber-950/80 border border-amber-500/60 text-amber-200 p-2.5 text-xs font-mono"
-                    >
-                      ⚠️ {ltxValidation.warnings[0]}
-                    </div>
-                  )}
-
-                  {ltxError && (
-                    <div className="bg-red-950/80 border border-red-500/60 text-red-200 p-2.5 text-xs font-mono">
-                      {ltxError}
-                    </div>
-                  )}
-
-                  <div className="flex flex-wrap items-center gap-2.5 pt-1">
-                    <button
-                      type="button"
-                      data-testid="generate-ltx-video-btn"
-                      disabled={ltxGenerating}
-                      onClick={handleGenerateLtxVideo}
-                      className="min-h-[44px] px-5 py-2.5 bg-[#ff3e3e] hover:bg-[#ff3e3e]/90 disabled:opacity-50 text-[#0c0c0e] font-display font-extrabold uppercase text-xs flex items-center gap-2 cursor-pointer"
-                    >
-                      <Film className="w-4 h-4 shrink-0" />
-                      <span>
-                        {ltxGenerating
-                          ? 'Generating LTX-Video 2B (24fps)...'
-                          : `Generate LTX-Video (${ltxParams.width}x${ltxParams.height} · ${ltxValidation.effectiveDecodedFrames}f @ ${ltxParams.fps}fps)`}
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setShowLtxColabCode((prev) => !prev)}
-                      className="min-h-[44px] px-3.5 py-2 bg-[#0c0c0e] hover:bg-white/10 border border-white/20 text-xs font-mono font-bold text-[#e4e4e7] cursor-pointer"
-                    >
-                      {showLtxColabCode ? 'Hide Python 3.13 Colab Fix' : 'View Python 3.13 Colab Fix'}
-                    </button>
-                  </div>
-
-                  {showLtxColabCode && (
-                    <pre
-                      data-testid="ltx-colab-script-preview"
-                      className="bg-[#0c0c0e] border border-white/15 p-3 text-[11px] font-mono text-sky-300 overflow-x-auto max-h-56"
-                    >
-                      {buildFixedLtxColabScript(ltxParams)}
-                    </pre>
-                  )}
-                </div>
-
-                {/* Right Column: LTX-Video Output Player & ComfyUI Node Contract Summary */}
-                <div className="lg:col-span-5 space-y-3 bg-[#0c0c0e] border border-white/15 p-4 flex flex-col justify-between">
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="font-bold text-[#00ff41]">
-                        LTX-Video Output Monitor (GET {ltxVideoUrl})
-                      </span>
-                      <span className="text-[#e4e4e7]/60">
-                        {ltxValidation.durationSeconds}s · {ltxParams.fps}fps
-                      </span>
-                    </div>
-
-                    <div className="aspect-video bg-black border border-white/15 overflow-hidden">
-                      <video
-                        key={ltxVideoUrl}
-                        data-testid="ltx-video-output-player"
-                        src={ltxVideoUrl}
-                        poster="/media/akzyon_teleserye_episode1_final.jpg"
-                        controls
-                        playsInline
-                        preload="auto"
-                        onError={() => {
-                          if (ltxVideoUrl !== '/media/video_akzyon_episode1.mp4') {
-                            setLtxVideoUrl('/media/video_akzyon_episode1.mp4');
-                          }
-                        }}
-                        className="w-full h-full object-contain bg-black"
-                      />
-                    </div>
-
-                    <div className="text-[11px] font-mono text-[#e4e4e7]/80 space-y-1 bg-[#141417] border border-white/10 p-3">
-                      <div className="font-bold text-[#ff3e3e]">
-                        ComfyUI LTX-Video Node Graph & Colab Fix:
-                      </div>
-                      <div>
-                        • Checkpoint: <span className="text-white">{ltxValidation.checkpointFile}</span>
-                      </div>
-                      <div>
-                        • Text Encoder: <span className="text-[#00ff41]">{ltxValidation.textEncoderFile}</span>
-                      </div>
-                      <div>
-                        • Latent Video: <span className="text-white">{ltxParams.width}x{ltxParams.height} · {ltxParams.frames} frames ({ltxValidation.effectiveDecodedFrames} decoded)</span>
-                      </div>
-                      <div>
-                        • Sampler / Scheduler: <span className="text-sky-300">{ltxParams.sampler_name} · {ltxParams.steps} steps · CFG {ltxParams.cfg_scale}</span>
-                      </div>
-                      {ltxSeedUsed > 0 && (
-                        <div>
-                          • Active Seed: <span className="text-amber-300">{ltxSeedUsed}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Google Colab Private Secrets (FAL_KEY & GEMINi_key via google.colab.userdata) */}
-                    <div
-                      data-testid="ltx-colab-secrets-card"
-                      className="text-[11px] font-mono text-[#e4e4e7]/85 space-y-2 bg-[#141417] border border-emerald-500/30 p-3"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-bold text-[#00ff41]">
-                          Colab Private Secrets (`google.colab.userdata`)
-                        </span>
-                        <button
-                          type="button"
-                          data-testid="copy-colab-userdata-btn"
-                          onClick={() =>
-                            handleCopyText(
-                              'Colab userdata Secrets Snippet (FAL_KEY & GEMINi_key)',
-                              COLAB_SECRETS_SNIPPET
-                            )
-                          }
-                          className="px-2 py-0.5 bg-emerald-600/25 hover:bg-emerald-600/40 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold uppercase cursor-pointer"
-                        >
-                          Copy userdata Code
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-[10px]">
-                        <div className="bg-[#0c0c0e] border border-white/10 px-2.5 py-1.5 flex items-center justify-between">
-                          <span className="text-white font-bold">FAL_KEY</span>
-                          <span className="text-[#00ff41]">userdata.get('FAL_KEY')</span>
-                        </div>
-                        <div className="bg-[#0c0c0e] border border-white/10 px-2.5 py-1.5 flex items-center justify-between">
-                          <span className="text-white font-bold">GEMINi_key</span>
-                          <span className="text-[#00ff41]">userdata.get('GEMINi_key')</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* ==================== CLOUDFLARE R2 MEDIA STORAGE (`movie-city-media`) + DAILY QUOTA + FIRESTORE E2E ==================== */}
-            <section
-              data-testid="r2-media-storage-panel"
-              className="p-5 sm:p-6 bg-[#141417] border border-white/10 space-y-5"
-            >
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/10 pb-4">
-                <div className="space-y-1 border-l-[3px] border-[#ff3e3e] pl-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest px-2 py-0.5 bg-[#ff3e3e] text-[#0c0c0e]">
-                      R2 Binding: {DEFAULT_R2_BINDING_NAME} → "{DEFAULT_R2_BUCKET_NAME}"
-                    </span>
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 bg-white/5 text-[#e4e4e7] border border-white/10">
-                      PUT /upload/:key · GET /media/:key
-                    </span>
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 bg-white/5 text-[#00ff41] border border-white/10">
-                      Firestore URL-Only (/r2_media_assets)
-                    </span>
-                  </div>
-                  <h2 className="text-lg sm:text-xl font-display font-extrabold uppercase text-[#e4e4e7] pt-1">
-                    Resource Monitor & Cloudflare R2 Media Storage
-                  </h2>
-                  <p className="text-xs text-[#e4e4e7]/60">
-                    Generated images, videos, and music are uploaded through the Worker to R2 bucket{' '}
-                    <code className="text-[#ff3e3e] font-mono">"{DEFAULT_R2_BUCKET_NAME}"</code>. Only the file URL (
-                    <code className="text-[#00ff41] font-mono">/media/:key</code>) and metadata are saved in Cloud Firestore.
-                  </p>
-                </div>
-
-                {/* Per-User Daily Generation Limit Counters — Variation 2 Stat Grid */}
-                <div className="grid grid-cols-3 border border-white/15 bg-[#0c0c0e] shrink-0">
-                  <div className="px-4 py-2.5 text-center border-r border-white/15">
-                    <div className="text-[10px] font-mono uppercase tracking-[0.15em] text-[#e4e4e7]/50">IMG / DAY</div>
-                    <div
-                      data-testid="quota-image-counter"
-                      className="text-base font-bold text-[#ff3e3e] font-mono"
-                    >
-                      {r2DailyUsage.image} / {DAILY_GENERATION_LIMITS.image}
-                    </div>
-                  </div>
-                  <div className="px-4 py-2.5 text-center border-r border-white/15">
-                    <div className="text-[10px] font-mono uppercase tracking-[0.15em] text-[#e4e4e7]/50">VID / DAY</div>
-                    <div
-                      data-testid="quota-video-counter"
-                      className="text-base font-bold text-[#ff3e3e] font-mono"
-                    >
-                      {r2DailyUsage.video} / {DAILY_GENERATION_LIMITS.video}
-                    </div>
-                  </div>
-                  <div className="px-4 py-2.5 text-center">
-                    <div className="text-[10px] font-mono uppercase tracking-[0.15em] text-[#e4e4e7]/50">AUD / DAY</div>
-                    <div
-                      data-testid="quota-music-counter"
-                      className="text-base font-bold text-[#ff3e3e] font-mono"
-                    >
-                      {r2DailyUsage.music} / {DAILY_GENERATION_LIMITS.music}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                {/* Left Column: Real End-to-End Test Controls + wrangler.toml */}
-                <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-slate-200">
-                      Prompt para sa Real End-to-End Test (1 Image → R2 Upload → Firestore URL Save → UI Load)
-                    </label>
-                    <input
-                      type="text"
-                      value={r2E2ePrompt}
-                      onChange={(e) => setR2E2ePrompt(e.target.value)}
-                      className="w-full min-h-[42px] bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white font-mono"
-                    />
-                    <div
-                      data-testid="cinematic-skill-r2-preview"
-                      className="bg-slate-950/90 border border-indigo-500/30 rounded-xl p-2.5 text-[11px] font-mono text-indigo-300 space-y-1"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="font-bold text-indigo-400">
-                          skills/cinematicSkill.js → generateCinematicPromptFromAI('image', userInput)
-                        </span>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <button
-                            type="button"
-                            disabled={aiEnhancingPrompt}
-                            onClick={() => handleEnhanceWithCinematicAI('image', 'r2')}
-                            className="text-[10px] font-bold px-2.5 py-1 rounded bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/40 cursor-pointer whitespace-nowrap"
-                          >
-                            {aiEnhancingPrompt ? 'Enhancing...' : 'AI Enhance (Gemini)'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleCopyText(
-                                'Cinematic Image Prompt',
-                                buildCinematicPrompt('image', r2E2ePrompt)
-                              )
-                            }
-                            className="text-[10px] font-bold text-sky-400 hover:text-sky-300"
-                          >
-                            Copy
-                          </button>
-                        </div>
-                      </div>
-                      <div className="text-slate-300 break-words leading-relaxed">
-                        {buildCinematicPrompt('image', r2E2ePrompt)}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <button
-                      type="button"
-                      data-testid="run-r2-e2e-video-btn"
-                      disabled={r2E2eRunning}
-                      onClick={() => handleRunR2MediaPipeline('video')}
-                      className="min-h-[44px] px-4 py-2.5 bg-[#ff3e3e] hover:bg-[#ff3e3e]/90 disabled:opacity-50 text-white font-black text-xs rounded-xl flex items-center gap-2 shadow-lg cursor-pointer"
-                    >
-                      <Film className="w-4 h-4 shrink-0" />
-                      <span>
-                        {r2E2eRunning
-                          ? 'Generating Video → R2 → Firestore...'
-                          : '🎬 Generate 1 Video → R2 → Firestore'}
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      data-testid="run-r2-e2e-image-btn"
-                      disabled={r2E2eRunning}
-                      onClick={() => handleRunR2MediaPipeline('image')}
-                      className="min-h-[44px] px-4 py-2.5 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-slate-950 font-black text-xs rounded-xl flex items-center gap-2 shadow-lg cursor-pointer"
-                    >
-                      <ImageIcon className="w-4 h-4 shrink-0" />
-                      <span>
-                        {r2E2eRunning
-                          ? 'Running E2E (Worker Quota → AI → R2 PUT → Firestore → UI)...'
-                          : 'Run Real E2E Test: Generate 1 Image → R2 → Firestore'}
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      disabled={r2E2eRunning}
-                      onClick={() =>
-                        handleRunR2MediaPipeline(
-                          'music',
-                          'Dramatic Tagalog teleserye soundtrack narration: Ang katotohanan ay malalaman na ngayong gabi.'
-                        )
-                      }
-                      className="min-h-[44px] px-3.5 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-amber-300 font-bold text-xs rounded-xl border border-slate-700 cursor-pointer"
-                    >
-                      + Generate Music Track → R2
-                    </button>
-
-                    <button
-                      type="button"
-                      data-testid="reset-r2-quota-btn"
-                      onClick={handleResetR2DailyQuota}
-                      className="min-h-[44px] px-3 py-2 bg-slate-900 hover:bg-slate-800 text-emerald-400 font-mono font-bold text-xs rounded-xl border border-emerald-500/40 cursor-pointer"
-                    >
-                      ↺ Reset Daily Quota
-                    </button>
-                  </div>
-
-                  {r2E2eError && (
-                    <div
-                      data-testid="r2-e2e-error-box"
-                      className="bg-red-950/80 border border-red-600/60 text-red-200 rounded-xl p-3 text-xs font-mono space-y-1"
-                    >
-                      <div className="font-bold text-red-400">Worker / Quota / Firestore Error:</div>
-                      <div>{r2E2eError}</div>
-                    </div>
-                  )}
-
-                  {/* wrangler.toml R2 Binding Preview */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-mono font-bold text-slate-300">
-                        wrangler.toml (R2 Binding: MEDIA → "movie-city-media")
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleCopyText('wrangler.toml', formatWranglerR2Toml())}
-                        className="text-[11px] font-bold text-sky-400 hover:text-sky-300"
-                      >
-                        Copy wrangler.toml
-                      </button>
-                    </div>
-                    <pre className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-[11px] text-sky-300 font-mono overflow-x-auto max-h-44">
-                      {formatWranglerR2Toml()}
-                    </pre>
-                  </div>
-                </div>
-
-                {/* Right Column: Loaded R2 Asset from Cloud Firestore + Real Diagnostics */}
-                <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3 flex flex-col justify-between">
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-bold text-emerald-400">
-                        Loaded from Cloud Firestore (/r2_media_assets) via Worker GET /media/:key
-                      </span>
-                      <span className="text-[10px] font-mono text-slate-400 shrink-0">
-                        Date: {r2DailyDate}
-                      </span>
-                    </div>
-
-                    {r2FirestoreAssets.length > 1 && (
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {r2FirestoreAssets.slice(0, 5).map((asset) => {
-                          const isCurrent = r2LoadedFirestoreDoc?.id === asset.id;
-                          return (
-                            <button
-                              key={asset.id}
-                              type="button"
-                              onClick={() => setR2LoadedFirestoreDoc(asset)}
-                              className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold border cursor-pointer ${
-                                isCurrent
-                                  ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300'
-                                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
-                              }`}
-                            >
-                              {asset.mediaType.toUpperCase()}: {asset.r2Key.slice(0, 22)}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {r2LoadedFirestoreDoc ? (
-                      <div
-                        data-testid="r2-loaded-firestore-card"
-                        className="space-y-3"
-                      >
-                        {r2LoadedFirestoreDoc.mediaType === 'image' && (
-                          <div className="aspect-video bg-slate-900 rounded-xl overflow-hidden border border-slate-800">
-                            <img
-                              data-testid="r2-firestore-loaded-img"
-                              src={r2LoadedFirestoreDoc.url}
-                              alt={r2LoadedFirestoreDoc.prompt}
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src =
-                                  '/media/image_clara_manila_noir.png';
-                              }}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        )}
-                        {r2LoadedFirestoreDoc.mediaType === 'music' && (
-                          <audio
-                            controls
-                            src={r2LoadedFirestoreDoc.url}
-                            className="w-full"
-                          />
-                        )}
-                        {r2LoadedFirestoreDoc.mediaType === 'video' && (
-                          <div className="aspect-video bg-black rounded-xl overflow-hidden border border-slate-800">
-                            <video
-                              key={r2LoadedFirestoreDoc.url}
-                              data-testid="r2-firestore-loaded-video"
-                              controls
-                              playsInline
-                              preload="auto"
-                              poster="/api/output/akzyon_teleserye_episode1_final.jpg"
-                              src={r2LoadedFirestoreDoc.url}
-                              className="w-full h-full object-contain bg-black"
-                            />
-                          </div>
-                        )}
-
-                        <div className="bg-slate-900/90 border border-slate-800 rounded-lg p-3 text-[11px] font-mono space-y-1 text-slate-300">
-                          <div>
-                            <span className="text-slate-400">Firestore Doc Path:</span>{' '}
-                            <span className="text-emerald-400 font-bold">
-                              /r2_media_assets/{r2LoadedFirestoreDoc.id}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-slate-400">R2 Bucket / Key:</span>{' '}
-                            <span className="text-sky-300">
-                              {r2LoadedFirestoreDoc.bucket} / {r2LoadedFirestoreDoc.r2Key}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-slate-400">Worker Media URL:</span>{' '}
-                            <a
-                              href={r2LoadedFirestoreDoc.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-amber-300 underline break-all"
-                            >
-                              {r2LoadedFirestoreDoc.url}
-                            </a>
-                          </div>
-                          <div>
-                            <span className="text-slate-400">MIME / Size / Model:</span>{' '}
-                            <span>
-                              {r2LoadedFirestoreDoc.contentType} · {r2LoadedFirestoreDoc.sizeBytes} bytes ·{' '}
-                              {r2LoadedFirestoreDoc.model}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="aspect-video bg-black rounded-xl overflow-hidden border border-slate-800">
-                        <video
-                          data-testid="r2-firestore-fallback-video"
-                          controls
-                          playsInline
-                          preload="auto"
-                          poster="/api/output/akzyon_teleserye_episode1_final.jpg"
-                          src="/media/video_akzyon_episode1.mp4"
-                          className="w-full h-full object-contain bg-black"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {r2WorkerGenResult && (
-                    <div
-                      data-testid="r2-e2e-diagnostics"
-                      className="bg-slate-900/80 border border-slate-800 rounded-lg p-3 text-[11px] font-mono space-y-1 text-slate-300"
-                    >
-                      <div className="font-bold text-sky-400">
-                        Real End-to-End Diagnostic Report:
-                      </div>
-                      <div>
-                        • Pre-AI Quota Checked:{' '}
-                        {String(r2WorkerGenResult.diagnostics.quotaCheckedBeforeAi)} (Images:{' '}
-                        {r2DailyUsage.image}/{DAILY_GENERATION_LIMITS.image})
-                      </div>
-                      <div>
-                        • Gemini Image Gen:{' '}
-                        {r2WorkerGenResult.diagnostics.geminiGenerationOk
-                          ? `OK (${r2WorkerGenResult.diagnostics.geminiModelUsed})`
-                          : `Fallback used (${
-                              r2WorkerGenResult.diagnostics.geminiError || 'No inline image returned'
-                            })`}
-                      </div>
-                      <div>
-                        • Worker Upload Route: {r2WorkerGenResult.diagnostics.workerPutUploadRoute} →{' '}
-                        {r2WorkerGenResult.diagnostics.workerGetMediaRoute}
-                      </div>
-                      <div>
-                        • Cloudflare Remote API:{' '}
-                        {r2WorkerGenResult.diagnostics.cloudflareLiveError
-                          ? r2WorkerGenResult.diagnostics.cloudflareLiveError
-                          : `HTTP ${r2WorkerGenResult.diagnostics.cloudflareLiveStatus}`}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </section>
@@ -2992,69 +2276,84 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {projects.slice(0, 4).map((proj) => (
-                    <div
-                      key={proj.id}
-                      className="bg-slate-900/90 border border-slate-800 hover:border-rose-500/60 rounded-2xl overflow-hidden flex flex-col justify-between transition-all shadow-md"
-                    >
-                      <div>
-                        <div
-                          onClick={() => loadProjectIntoStudio(proj)}
-                          className="aspect-video bg-slate-950 relative cursor-pointer overflow-hidden"
-                        >
-                          <img
-                            src={proj.thumbnailDataUrl}
-                            alt={proj.title}
-                            className="w-full h-full object-cover"
-                          />
-                          <span
-                            className={`absolute top-2.5 right-2.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase ${
-                              proj.status === 'Done'
-                                ? 'bg-emerald-500/90 text-slate-950'
-                                : proj.status === 'Generating'
-                                ? 'bg-amber-500/90 text-slate-950'
-                                : 'bg-slate-700/90 text-slate-200'
-                            }`}
+                  {projects.slice(0, 4).map((proj) => {
+                    const projectRenderType =
+                      proj.status === 'Done' && proj.generationMode === 'real'
+                        ? 'RENDERED'
+                        : 'SAMPLE';
+                    return (
+                      <div
+                        key={proj.id}
+                        className="bg-slate-900/90 border border-slate-800 hover:border-rose-500/60 rounded-2xl overflow-hidden flex flex-col justify-between transition-all shadow-md"
+                      >
+                        <div>
+                          <div
+                            onClick={() => loadProjectIntoStudio(proj)}
+                            className="aspect-video bg-slate-950 relative cursor-pointer overflow-hidden"
                           >
-                            {proj.status}
-                          </span>
+                            <img
+                              src={proj.thumbnailDataUrl}
+                              alt={proj.title}
+                              className="w-full h-full object-cover"
+                            />
+                            <span
+                              className={`absolute top-2.5 left-2.5 text-[9px] font-extrabold px-2 py-0.5 rounded uppercase border ${
+                                projectRenderType === 'RENDERED'
+                                  ? 'bg-emerald-950/90 text-emerald-300 border-emerald-400'
+                                  : 'bg-amber-950/90 text-amber-300 border-amber-400'
+                              }`}
+                            >
+                              {projectRenderType}
+                            </span>
+                            <span
+                              className={`absolute top-2.5 right-2.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase ${
+                                proj.status === 'Done'
+                                  ? 'bg-emerald-500/90 text-slate-950'
+                                  : proj.status === 'Generating'
+                                  ? 'bg-amber-500/90 text-slate-950'
+                                  : 'bg-slate-700/90 text-slate-200'
+                              }`}
+                            >
+                              {proj.status}
+                            </span>
+                          </div>
+                          <div className="p-3.5 space-y-1">
+                            <h3 className="font-bold text-sm truncate">{proj.title}</h3>
+                            <p className="text-[11px] text-slate-400 font-mono">
+                              {new Date(proj.updatedAt).toLocaleDateString()} · {proj.scenes.length}{' '}
+                              scenes
+                            </p>
+                          </div>
                         </div>
-                        <div className="p-3.5 space-y-1">
-                          <h3 className="font-bold text-sm truncate">{proj.title}</h3>
-                          <p className="text-[11px] text-slate-400 font-mono">
-                            {new Date(proj.updatedAt).toLocaleDateString()} · {proj.scenes.length}{' '}
-                            scenes
-                          </p>
+                        <div className="p-3.5 pt-0 flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => loadProjectIntoStudio(proj)}
+                            className="flex-1 min-h-[40px] bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                            <span>Buksan</span>
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Duplicate ${proj.title}`}
+                            onClick={() => handleDuplicateProject(proj)}
+                            className="min-h-[40px] min-w-[40px] bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl flex items-center justify-center"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Delete ${proj.title}`}
+                            onClick={() => setProjectToDelete(proj)}
+                            className="min-h-[40px] min-w-[40px] bg-slate-800 hover:bg-red-950 text-red-400 rounded-xl flex items-center justify-center"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
-                      <div className="p-3.5 pt-0 flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => loadProjectIntoStudio(proj)}
-                          className="flex-1 min-h-[40px] bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                          <span>Buksan</span>
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={`Duplicate ${proj.title}`}
-                          onClick={() => handleDuplicateProject(proj)}
-                          className="min-h-[40px] min-w-[40px] bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl flex items-center justify-center"
-                        >
-                          <Copy className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={`Delete ${proj.title}`}
-                          onClick={() => setProjectToDelete(proj)}
-                          className="min-h-[40px] min-w-[40px] bg-slate-800 hover:bg-red-950 text-red-400 rounded-xl flex items-center justify-center"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </section>
@@ -3110,260 +2409,6 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
                     </button>
                   </div>
                 ))}
-              </div>
-            </section>
-
-            {/* ==================== EXPO SDK 58.0.0 DEVICE & SENSOR BRIDGE (`expo-camera`, `expo-contacts`, `expo-sensors`) ==================== */}
-            <section
-              data-testid="expo-sdk-panel"
-              className="p-5 sm:p-6 bg-[#141417] border border-white/10 space-y-5"
-            >
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/10 pb-4">
-                <div className="space-y-1 border-l-[3px] border-[#ff3e3e] pl-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest px-2 py-0.5 bg-[#ff3e3e] text-[#0c0c0e]">
-                      Expo SDK 58.0.0 · React Native 0.88 · React 19.3.0
-                    </span>
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 bg-white/5 text-[#00ff41] border border-white/10">
-                      Android 7+ · compileSdkVersion 37 · targetSdkVersion 36
-                    </span>
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 bg-white/5 text-[#e4e4e7] border border-white/10">
-                      iOS 16.4+ · Xcode 26.4+ · Node 22.13.x
-                    </span>
-                  </div>
-                  <h2 className="text-lg sm:text-xl font-display font-extrabold uppercase text-[#e4e4e7] pt-1">
-                    Expo SDK 58.0.0 Native Device & Sensor Hub
-                  </h2>
-                  <p className="text-xs text-[#e4e4e7]/60">
-                    Integrated device modules (<code className="text-[#ff3e3e] font-mono">expo-camera</code>,{' '}
-                    <code className="text-[#ff3e3e] font-mono">expo-contacts</code>,{' '}
-                    <code className="text-[#ff3e3e] font-mono">expo-sensors</code>) configured in{' '}
-                    <code className="text-[#00ff41] font-mono">app.json</code> and{' '}
-                    <code className="text-[#00ff41] font-mono">android/app/build.gradle.kts</code>.
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleCopyText('Expo Install Command', EXPO_INSTALL_COMMAND)}
-                    className="min-h-[38px] px-3 py-1.5 text-xs font-mono uppercase bg-black border border-white/15 hover:border-[#ff3e3e] text-[#00ff41] cursor-pointer"
-                  >
-                    Copy: {EXPO_INSTALL_COMMAND}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleCopyText('Expo Canary Command', EXPO_CANARY_COMMAND)}
-                    className="min-h-[38px] px-3 py-1.5 text-xs font-mono uppercase bg-black border border-white/15 hover:border-[#ff3e3e] text-[#e4e4e7] cursor-pointer"
-                  >
-                    Copy Canary CLI
-                  </button>
-                </div>
-              </div>
-
-              {/* Compatibility Matrix Table (SDK 58 / 57 / 56) */}
-              <div className="overflow-x-auto border border-white/10 bg-[#0c0c0e]">
-                <table className="w-full text-left text-xs font-mono">
-                  <thead className="bg-white/5 text-[#e4e4e7]/70 uppercase text-[10px]">
-                    <tr>
-                      <th className="p-2.5 border-b border-white/10">Expo SDK</th>
-                      <th className="p-2.5 border-b border-white/10">React Native</th>
-                      <th className="p-2.5 border-b border-white/10">React</th>
-                      <th className="p-2.5 border-b border-white/10">RN Web / TV</th>
-                      <th className="p-2.5 border-b border-white/10">Min Node.js</th>
-                      <th className="p-2.5 border-b border-white/10">Android (compile / target)</th>
-                      <th className="p-2.5 border-b border-white/10">iOS / Xcode</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/10">
-                    {EXPO_SDK_COMPATIBILITY_MATRIX.map((row) => (
-                      <tr
-                        key={row.expoSdkVersion}
-                        className={
-                          row.expoSdkVersion === '58.0.0'
-                            ? 'bg-[#ff3e3e]/10 text-white font-bold'
-                            : 'text-[#e4e4e7]/70'
-                        }
-                      >
-                        <td className="p-2.5 text-[#ff3e3e]">{row.expoSdkVersion}</td>
-                        <td className="p-2.5">{row.reactNativeVersion}</td>
-                        <td className="p-2.5">{row.reactVersion}</td>
-                        <td className="p-2.5">
-                          {row.reactNativeWebVersion} / {row.reactNativeTvVersion}
-                        </td>
-                        <td className="p-2.5">{row.minNodeVersion}</td>
-                        <td className="p-2.5 text-[#00ff41]">
-                          Android {row.androidMinVersion} (SDK {row.compileSdkVersion} / {row.targetSdkVersion})
-                        </td>
-                        <td className="p-2.5">
-                          iOS {row.iosMinVersion} / Xcode {row.xcodeMinVersion}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* 3 Interactive Device Modules: CameraView, Contact.getAll(), Gyroscope */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                {/* 1. expo-camera: CameraView */}
-                <div className="p-4 bg-[#0c0c0e] border border-white/10 space-y-3 flex flex-col justify-between">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono uppercase tracking-widest text-[#ff3e3e]">
-                        expo-camera · CameraView
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setExpoCameraFacing((f) => (f === 'back' ? 'front' : 'back'))
-                        }
-                        className="text-[10px] font-mono px-2 py-0.5 border border-white/20 text-[#e4e4e7] hover:border-[#ff3e3e] cursor-pointer"
-                      >
-                        Lens: {expoCameraFacing.toUpperCase()}
-                      </button>
-                    </div>
-                    <p className="text-xs text-[#e4e4e7]/70">
-                      Capture a reference viewfinder frame with live gyroscope telemetry overlay directly into Scene 1.
-                    </p>
-                    {expoCameraFrameUrl && (
-                      <img
-                        src={expoCameraFrameUrl}
-                        alt="Expo CameraView Reference Frame"
-                        className="w-full aspect-video object-cover border border-white/15"
-                      />
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    data-testid="expo-camera-capture-btn"
-                    onClick={handleCaptureExpoCameraFrame}
-                    className="w-full min-h-[40px] px-3 py-2 bg-[#ff3e3e] hover:bg-[#ff3e3e]/90 text-[#0c0c0e] font-display font-extrabold uppercase text-xs cursor-pointer"
-                  >
-                    Capture CameraView Frame
-                  </button>
-                </div>
-
-                {/* 2. expo-contacts: Contact.getAll() */}
-                <div className="p-4 bg-[#0c0c0e] border border-white/10 space-y-3 flex flex-col justify-between">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono uppercase tracking-widest text-[#ff3e3e]">
-                        expo-contacts · Contact.getAll()
-                      </span>
-                      <span className="text-[10px] font-mono text-[#00ff41]">
-                        {expoContacts.length} Loaded
-                      </span>
-                    </div>
-                    <p className="text-xs text-[#e4e4e7]/70">
-                      Read production cast & crew contacts from device directory and lock a lead actor into the Character Profile.
-                    </p>
-                    {expoContacts.length > 0 && (
-                      <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                        {expoContacts.map((c) => (
-                          <div
-                            key={c.id}
-                            className="p-2 bg-[#141417] border border-white/10 flex items-center justify-between gap-2"
-                          >
-                            <div className="min-w-0">
-                              <div className="text-xs font-bold text-white truncate">{c.name}</div>
-                              <div className="text-[10px] font-mono text-[#e4e4e7]/60 truncate">
-                                {c.role} · {c.phoneNumber}
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleLockContactAsCharacter(c)}
-                              className="px-2 py-1 bg-[#ff3e3e]/20 hover:bg-[#ff3e3e] text-[#ff3e3e] hover:text-[#0c0c0e] text-[10px] font-mono font-bold uppercase shrink-0 cursor-pointer"
-                            >
-                              Lock Cast
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    data-testid="expo-contacts-load-btn"
-                    onClick={handleLoadExpoContacts}
-                    className="w-full min-h-[40px] px-3 py-2 border-[1.5px] border-[#e4e4e7] hover:bg-white/10 text-[#e4e4e7] font-display font-extrabold uppercase text-xs cursor-pointer"
-                  >
-                    Run Contact.getAll()
-                  </button>
-                </div>
-
-                {/* 3. expo-sensors: Gyroscope */}
-                <div className="p-4 bg-[#0c0c0e] border border-white/10 space-y-3 flex flex-col justify-between">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono uppercase tracking-widest text-[#ff3e3e]">
-                        expo-sensors · Gyroscope
-                      </span>
-                      <span className="text-[10px] font-mono text-[#00ff41]">
-                        {mapGyroscopeToCameraMotion(expoGyro).intensityLabel}
-                      </span>
-                    </div>
-                    <p className="text-xs text-[#e4e4e7]/70">
-                      3-axis angular velocity sensor mapping device movement to Teleserye camera motion presets.
-                    </p>
-                    <div className="grid grid-cols-3 gap-1.5 font-mono text-[11px]">
-                      <label className="bg-[#141417] p-1.5 border border-white/10 block">
-                        <span className="text-[#e4e4e7]/50 block text-[9px]">AXIS X</span>
-                        <input
-                          type="number"
-                          step="0.1"
-                          aria-label="Gyroscope X Axis"
-                          value={expoGyro.x}
-                          onChange={(e) =>
-                            setExpoGyro((g) => ({ ...g, x: Number(e.target.value) || 0 }))
-                          }
-                          className="w-full bg-transparent text-[#00ff41] font-bold focus:outline-none"
-                        />
-                      </label>
-                      <label className="bg-[#141417] p-1.5 border border-white/10 block">
-                        <span className="text-[#e4e4e7]/50 block text-[9px]">AXIS Y</span>
-                        <input
-                          type="number"
-                          step="0.1"
-                          aria-label="Gyroscope Y Axis"
-                          value={expoGyro.y}
-                          onChange={(e) =>
-                            setExpoGyro((g) => ({ ...g, y: Number(e.target.value) || 0 }))
-                          }
-                          className="w-full bg-transparent text-[#00ff41] font-bold focus:outline-none"
-                        />
-                      </label>
-                      <label className="bg-[#141417] p-1.5 border border-white/10 block">
-                        <span className="text-[#e4e4e7]/50 block text-[9px]">AXIS Z</span>
-                        <input
-                          type="number"
-                          step="0.1"
-                          aria-label="Gyroscope Z Axis"
-                          value={expoGyro.z}
-                          onChange={(e) =>
-                            setExpoGyro((g) => ({ ...g, z: Number(e.target.value) || 0 }))
-                          }
-                          className="w-full bg-transparent text-[#00ff41] font-bold focus:outline-none"
-                        />
-                      </label>
-                    </div>
-                    <div className="text-[11px] font-mono text-[#e4e4e7]/80">
-                      Mapped Preset:{' '}
-                      <strong className="text-[#00ff41]">
-                        {mapGyroscopeToCameraMotion(expoGyro).motionPreset}
-                      </strong>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    data-testid="expo-gyro-apply-btn"
-                    onClick={handleApplyGyroscopeMotion}
-                    className="w-full min-h-[40px] px-3 py-2 bg-[#e4e4e7] hover:bg-white text-[#0c0c0e] font-display font-extrabold uppercase text-xs cursor-pointer"
-                  >
-                    Sync Gyro to Camera Motion
-                  </button>
-                </div>
               </div>
             </section>
           </div>
@@ -3442,6 +2487,17 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
                           className="w-full h-full object-cover"
                         />
                         <span
+                          className={`absolute top-3 left-3 text-[10px] font-extrabold px-2 py-0.5 rounded uppercase border ${
+                            proj.status === 'Done' && proj.generationMode === 'real'
+                              ? 'bg-emerald-950/90 text-emerald-300 border-emerald-400'
+                              : 'bg-amber-950/90 text-amber-300 border-amber-400'
+                          }`}
+                        >
+                          {proj.status === 'Done' && proj.generationMode === 'real'
+                            ? 'RENDERED'
+                            : 'SAMPLE'}
+                        </span>
+                        <span
                           className={`absolute top-3 right-3 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase ${
                             proj.status === 'Done'
                               ? 'bg-emerald-500 text-slate-950'
@@ -3507,8 +2563,7 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <span className="text-[11px] font-mono uppercase text-rose-400 font-bold">
-                    AI Generation Pipeline · POST /api/generate-video · HF_VIDEO_MODEL: {hfVideoModel} (
-                    {hfTokenConfigured ? 'HF_TOKEN Ready' : 'Set HF_TOKEN on Server'})
+                    5-Step 3!2!1! Akzyon Episode Studio · Character Consistency Lock
                   </span>
                   <h1 className="text-lg sm:text-xl font-black">
                     {editTitle || 'Untitled 3!2!1! Akzyon'}
@@ -3585,12 +2640,13 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
                 </div>
               </div>
 
-              {/* Live Video Generation Progress & AI Director Studio Animator */}
+              {/* Live Video Generation Progress & AI Director Studio Animator (Terminal hidden in Creator View) */}
               <LiveDirectorProgressStudio
                 progressPct={genProgressPct}
                 logs={directorTerminalLogs}
                 isComplete={!isGenerating && genProgressPct === 100}
-                title={`3!2!1! Akzyon AI Director Studio · ${hfVideoModel}`}
+                title="3!2!1! Akzyon AI Director Studio"
+                showTerminalLog={false}
               />
 
               {/* Error Banner with Retry Button */}
@@ -3654,75 +2710,6 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
                       onChange={(e) => setEditPrompt(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white"
                     />
-                    {/* Cinematic Prompt Engine (skills/cinematicSkill.js) Live Output */}
-                    <div
-                      data-testid="cinematic-skill-studio-box"
-                      className="p-3 bg-slate-950 border border-indigo-500/30 rounded-xl space-y-2 text-[11px] font-mono"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-bold text-indigo-400">
-                          Cinematic Prompt Engine (skills/cinematicSkill.js)
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            disabled={aiEnhancingPrompt}
-                            onClick={() => handleEnhanceWithCinematicAI('image', 'studio')}
-                            className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/40 cursor-pointer"
-                          >
-                            {aiEnhancingPrompt ? 'Enhancing...' : 'AI Enhance Image'}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={aiEnhancingPrompt}
-                            onClick={() => handleEnhanceWithCinematicAI('video', 'studio')}
-                            className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-600/30 hover:bg-amber-600/50 text-amber-200 border border-amber-500/40 cursor-pointer"
-                          >
-                            {aiEnhancingPrompt ? 'Enhancing...' : 'AI Enhance Video'}
-                          </button>
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between text-slate-400">
-                          <span>buildCinematicPrompt('image', subject):</span>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleCopyText(
-                                'Cinematic Image Prompt',
-                                buildCinematicPrompt('image', editPrompt)
-                              )
-                            }
-                            className="text-sky-400 hover:text-sky-300 font-bold"
-                          >
-                            Copy Image Prompt
-                          </button>
-                        </div>
-                        <div className="text-slate-300 bg-slate-900/90 border border-slate-800 rounded-lg p-2 break-words">
-                          {buildCinematicPrompt('image', editPrompt)}
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between text-slate-400">
-                          <span>buildCinematicPrompt('video', story):</span>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleCopyText(
-                                'Cinematic Video Prompt',
-                                buildCinematicPrompt('video', editPrompt)
-                              )
-                            }
-                            className="text-amber-400 hover:text-amber-300 font-bold"
-                          >
-                            Copy Video Prompt
-                          </button>
-                        </div>
-                        <div className="text-slate-300 bg-slate-900/90 border border-slate-800 rounded-lg p-2 break-words">
-                          {buildCinematicPrompt('video', editPrompt)}
-                        </div>
-                      </div>
-                    </div>
                   </div>
 
                   {/* Character Profile Fields (Automatically Injected into Every Scene Prompt) */}
@@ -3785,16 +2772,6 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
                     </div>
                   </div>
 
-                  <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={simulateErrorNext}
-                      onChange={(e) => setSimulateErrorNext(e.target.checked)}
-                      className="accent-rose-500"
-                    />
-                    <span>Subukan ang Error Handling & Retry button sa susunod na run</span>
-                  </label>
-
                   <button
                     type="button"
                     onClick={handleRun5StepGeneration}
@@ -3816,9 +2793,29 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
                 {/* Preview Player + Master Episode Video Player */}
                 <div className="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden space-y-3 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
-                    <span className="text-xs font-bold font-mono text-emerald-400">
-                      🎬 Master Episode Video Player (MP4 / R2 Stream) · {editResolution}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold font-mono text-emerald-400">
+                        🎬 Master Episode Video Player · {editResolution}
+                      </span>
+                      <span
+                        data-testid="studio-video-render-badge"
+                        className={`rounded px-2 py-0.5 text-[10px] font-extrabold uppercase border ${
+                          getVideoSourceRenderType(
+                            combinedVideoUrl || '/media/video_akzyon_episode1.mp4',
+                            undefined,
+                            featuredEpisodeId
+                          ) === 'RENDERED'
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/50'
+                            : 'bg-amber-500/20 text-amber-300 border-amber-400/50'
+                        }`}
+                      >
+                        {getVideoSourceRenderType(
+                          combinedVideoUrl || '/media/video_akzyon_episode1.mp4',
+                          undefined,
+                          featuredEpisodeId
+                        )}
+                      </span>
+                    </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <input
                         ref={studioCustomVideoInputRef}
@@ -3844,6 +2841,25 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
 
                   {/* Real Playable Video Monitor in Studio Tab with Auto-Play, Tagalog Dubbing & Subtitles */}
                   <div className="aspect-video bg-black rounded-xl overflow-hidden border border-slate-800 relative">
+                    <div className="pointer-events-none absolute top-3 left-3 z-10">
+                      <span
+                        className={`rounded-md px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wider shadow-lg border ${
+                          getVideoSourceRenderType(
+                            combinedVideoUrl || '/media/video_akzyon_episode1.mp4',
+                            undefined,
+                            featuredEpisodeId
+                          ) === 'RENDERED'
+                            ? 'bg-emerald-950/90 text-emerald-300 border-emerald-400'
+                            : 'bg-amber-950/90 text-amber-300 border-amber-400'
+                        }`}
+                      >
+                        {getVideoSourceRenderType(
+                          combinedVideoUrl || '/media/video_akzyon_episode1.mp4',
+                          undefined,
+                          featuredEpisodeId
+                        )}
+                      </span>
+                    </div>
                     <video
                       key={combinedVideoUrl || '/media/video_akzyon_episode1.mp4'}
                       data-testid="studio-video-player"
@@ -4188,525 +3204,24 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
           </div>
         )}
 
-        {/* ==================== 5. SETTINGS TAB (Requirement #6) ==================== */}
+        {/* ==================== 5. SETTINGS TAB (Requirement #6 — Creator View + Developer Mode Switch) ==================== */}
         {bottomTab === 'settings' && (
           <div className="max-w-4xl mx-auto bg-slate-900/90 border border-slate-800 rounded-2xl p-5 sm:p-7 space-y-6">
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-white">
                 {language === 'tl'
-                  ? 'MovieCityAI Unified Backend & Studio Settings'
-                  : 'MovieCityAI Unified Backend & Studio Settings'}
+                  ? '3!2!1! Akzyon Creator & Studio Settings'
+                  : '3!2!1! Akzyon Creator & Studio Settings'}
               </h1>
               <p className="text-xs text-slate-400 mt-1">
                 {language === 'tl'
-                  ? 'Kumpletong detalye ng Backend Architecture sa likod ng moviecityAI, kasama ang Cloudflare, Hyperdrive, Supabase, Firestore, at FFmpeg Render Queue.'
-                  : 'Full backend architecture details integrated behind moviecityAI, including Cloudflare, Hyperdrive, Supabase, Firestore, and FFmpeg Render Queue.'}
+                  ? 'I-customize ang iyong Creator Profile, Tema, Wika, Cloud Sync, Storage, at Developer Mode.'
+                  : 'Customize your Creator Profile, Theme, Language, Cloud Sync, Storage, and Developer Mode.'}
               </p>
             </div>
 
-            {/* ==================== MOVIECITY AI (moviecityAI) UNIFIED BACKEND ARCHITECTURE HUB ==================== */}
-            <div className="p-4 sm:p-5 bg-slate-950 border border-rose-700/50 rounded-2xl space-y-4 shadow-xl">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded-md bg-rose-600 text-white font-mono text-xs font-black">
-                      {movieCityArch.engineId}
-                    </span>
-                    <span className="text-sm sm:text-base font-black text-white">
-                      {movieCityArch.engineName}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 font-mono">
-                    Package: <strong className="text-emerald-400">{movieCityArch.packageName}</strong> · Version:{' '}
-                    <span className="text-amber-300">{movieCityArch.version}</span> ·{' '}
-                    <span className="text-sky-300">{movieCityArch.preservedSkillNamespace}</span>
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={movieCityOrchestrating}
-                    onClick={handleRunMovieCityAiOrchestration}
-                    className="min-h-[38px] px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-black flex items-center gap-1.5 shadow-md"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>
-                      {movieCityOrchestrating
-                        ? 'Orchestrating moviecityAI...'
-                        : 'Run moviecityAI Full-Stack Orchestration'}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleCopyText(
-                        'MovieCityAI Full Backend Architecture JSON',
-                        JSON.stringify(movieCityArch, null, 2)
-                      )
-                    }
-                    className="min-h-[38px] px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-amber-300 text-xs font-bold flex items-center gap-1.5"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Copy Full Backend Spec JSON</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Runtime, Cloud Identity & Database Summary Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs font-mono">
-                <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1">
-                  <span className="block text-[10px] uppercase text-slate-400">
-                    Server Runtime & Port
-                  </span>
-                  <span className="block text-emerald-300 font-bold truncate">
-                    Express 5 + WS · Port {movieCityArch.runtime.port}
-                  </span>
-                  <span className="block text-[10px] text-slate-400 truncate">
-                    {movieCityArch.runtime.region}
-                  </span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1">
-                  <span className="block text-[10px] uppercase text-slate-400">
-                    GCP & Firebase Cloud
-                  </span>
-                  <span className="block text-sky-300 font-bold truncate">
-                    {movieCityArch.identityAndCloud.gcpProjectId}
-                  </span>
-                  <span className="block text-[10px] text-slate-400 truncate">
-                    Project #{movieCityArch.identityAndCloud.gcpProjectNumber} · FB:{' '}
-                    {movieCityArch.identityAndCloud.firebaseProjectId}
-                  </span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1">
-                  <span className="block text-[10px] uppercase text-slate-400">
-                    Cloudflare Edge & Hyperdrive
-                  </span>
-                  <span className="block text-amber-300 font-bold truncate">
-                    {movieCityArch.identityAndCloud.cloudflareTokenName} ({movieCityArch.identityAndCloud.cloudflareClientIpCidr})
-                  </span>
-                  <span className="block text-[10px] text-slate-400 truncate">
-                    DB User: {movieCityArch.databases.hyperdrivePrimary.dbUser}
-                  </span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1">
-                  <span className="block text-[10px] uppercase text-slate-400">
-                    Supabase & Firestore DB
-                  </span>
-                  <span className="block text-emerald-300 font-bold truncate">
-                    Supabase: {movieCityArch.databases.supabasePostgres.projectRef}
-                  </span>
-                  <span className="block text-[10px] text-slate-400 truncate">
-                    Firestore: {movieCityArch.databases.firestoreNoSql.databaseId.slice(0, 26)}...
-                  </span>
-                </div>
-              </div>
-
-              {/* Orchestration Result Banner */}
-              {movieCityOrchResult && (
-                <div
-                  role="status"
-                  className="p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-600/70 text-emerald-200 space-y-2 text-xs"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-[11px]">
-                    <span className="font-bold text-emerald-300">
-                      ✓ {movieCityOrchResult.engineId} ({movieCityOrchResult.version}) Orchestration Verified ·{' '}
-                      {movieCityOrchResult.elapsedMs}ms
-                    </span>
-                    <span className="px-2 py-0.5 rounded bg-slate-900 text-amber-300">
-                      {movieCityOrchResult.packageName}
-                    </span>
-                  </div>
-                  <p className="text-[11px] leading-relaxed">{movieCityOrchResult.summaryMessage}</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1 font-mono text-[10px]">
-                    <div className="p-2 rounded bg-slate-950/90 border border-slate-800">
-                      <span className="block text-slate-400">1. Cloudflare</span>
-                      <span className="text-emerald-300 font-bold">
-                        {movieCityOrchResult.steps.cloudflareEdge.tokenName}
-                      </span>
-                    </div>
-                    <div className="p-2 rounded bg-slate-950/90 border border-slate-800">
-                      <span className="block text-slate-400">2. Hyperdrive</span>
-                      <span className="text-amber-300 font-bold">
-                        {movieCityOrchResult.steps.hyperdrivePool.dbUser}
-                      </span>
-                    </div>
-                    <div className="p-2 rounded bg-slate-950/90 border border-slate-800">
-                      <span className="block text-slate-400">3. Supabase</span>
-                      <span className="text-sky-300 font-bold">
-                        {movieCityOrchResult.steps.supabaseSystem.projectRef}
-                      </span>
-                    </div>
-                    <div className="p-2 rounded bg-slate-950/90 border border-slate-800">
-                      <span className="block text-slate-400">4. Firestore</span>
-                      <span className="text-emerald-300 font-bold">
-                        {movieCityOrchResult.steps.firestoreCloud.gcpProjectId}
-                      </span>
-                    </div>
-                    <div className="p-2 rounded bg-slate-950/90 border border-slate-800">
-                      <span className="block text-slate-400">5. FFmpeg Queue</span>
-                      <span className="text-rose-300 font-bold">NVENC / libx264</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* 6 Backend Subsystems Architecture Breakdown */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-200">
-                    6-Layer Backend Architecture Integrated Behind <code className="text-rose-400">moviecityAI</code>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setShowMovieCityRoutes((prev) => !prev)}
-                    className="text-[11px] font-mono font-semibold text-sky-400 hover:text-sky-300"
-                  >
-                    {showMovieCityRoutes ? 'Hide API Route Manifest' : 'Show API Route Manifest'}
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                  {movieCityArch.subsystems.map((sub) => (
-                    <div
-                      key={sub.id}
-                      className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-bold text-white">{sub.name}</span>
-                        <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
-                          {sub.status}
-                        </span>
-                      </div>
-                      <div className="text-[11px] font-mono text-amber-300 truncate">
-                        {sub.endpointOrBinding}
-                      </div>
-                      <p className="text-[11px] text-slate-300 leading-relaxed">{sub.details}</p>
-                      <div className="text-[10px] font-mono text-slate-400 pt-0.5">
-                        Security: <span className="text-sky-300">{sub.securityModel}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Backend API Route Manifest Table */}
-              {showMovieCityRoutes && (
-                <div className="space-y-2 pt-1">
-                  <span className="block text-xs font-bold text-slate-200">
-                    Complete Backend API Route Manifest (<code className="text-emerald-400">server.ts</code>)
-                  </span>
-                  <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/70">
-                    <table className="w-full text-left border-collapse text-[11px]">
-                      <thead>
-                        <tr className="border-b border-slate-800 bg-slate-950 text-slate-400 font-mono uppercase text-[10px]">
-                          <th className="py-2 px-2.5">Method</th>
-                          <th className="py-2 px-2.5">Endpoint</th>
-                          <th className="py-2 px-2.5">Subsystem</th>
-                          <th className="py-2 px-2.5">Auth / Security</th>
-                          <th className="py-2 px-2.5">Purpose</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800/70">
-                        {movieCityArch.routes.map((rt) => (
-                          <tr key={`${rt.method}-${rt.path}`} className="hover:bg-slate-900">
-                            <td className="py-2 px-2.5 font-mono font-bold">
-                              <span
-                                className={`px-1.5 py-0.5 rounded text-[10px] ${
-                                  rt.method === 'POST'
-                                    ? 'bg-amber-500/20 text-amber-300'
-                                    : rt.method === 'WS'
-                                    ? 'bg-rose-500/20 text-rose-300'
-                                    : 'bg-emerald-500/20 text-emerald-300'
-                                }`}
-                              >
-                                {rt.method}
-                              </span>
-                            </td>
-                            <td className="py-2 px-2.5 font-mono text-sky-300 whitespace-nowrap">
-                              {rt.path}
-                            </td>
-                            <td className="py-2 px-2.5 text-slate-200 whitespace-nowrap">
-                              {rt.subsystem}
-                            </td>
-                            <td className="py-2 px-2.5 font-mono text-slate-400 whitespace-nowrap">
-                              {rt.auth}
-                            </td>
-                            <td className="py-2 px-2.5 text-slate-300">{rt.purpose}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* ==================== CLOUDFLARE R2 MEDIA STORAGE (`movie-city-media`) & DAILY QUOTA PANEL ==================== */}
-            <div
-              data-testid="r2-media-storage-panel"
-              className="p-4 sm:p-5 bg-slate-950 border border-sky-700/60 rounded-2xl space-y-4 shadow-xl"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded-md bg-sky-500 text-slate-950 font-mono text-xs font-black">
-                      R2: {DEFAULT_R2_BINDING_NAME}
-                    </span>
-                    <h2 className="text-sm sm:text-base font-black text-white">
-                      Cloudflare R2 Media Storage &amp; Per-User Daily AI Quota
-                    </h2>
-                  </div>
-                  <p className="text-[11px] text-slate-400 font-mono">
-                    Bucket: <strong className="text-sky-300">{DEFAULT_R2_BUCKET_NAME}</strong> · Routes:{' '}
-                    <code className="text-emerald-300">PUT /upload/:key</code> (Auth Token) &amp;{' '}
-                    <code className="text-amber-300">GET /media/:key</code> · Firestore:{' '}
-                    <code className="text-rose-300">/r2_media_assets/&#123;id&#125;</code> (URL &amp; metadata only)
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleCopyText('wrangler.toml R2 binding', formatWranglerR2Toml())}
-                  className="min-h-[36px] px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-sky-300 text-xs font-bold flex items-center gap-1.5"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>Copy wrangler.toml R2 Binding</span>
-                </button>
-              </div>
-
-              {/* Per-User Daily Generation Limit Counters (Checked in Worker BEFORE AI) */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs font-mono">
-                <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase text-slate-400">Images / Day</span>
-                    <span className="text-sky-300 font-bold" data-testid="r2-quota-image">
-                      {r2DailyUsage.image} / {DAILY_GENERATION_LIMITS.image}
-                    </span>
-                  </div>
-                  <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-sky-400"
-                      style={{
-                        width: `${Math.min(100, (r2DailyUsage.image / DAILY_GENERATION_LIMITS.image) * 100)}%`,
-                      }}
-                    />
-                  </div>
-                  <span className="block text-[10px] text-slate-500">
-                    Checked in Worker before calling AI ({r2DailyDate})
-                  </span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase text-slate-400">Videos / Day</span>
-                    <span className="text-rose-300 font-bold" data-testid="r2-quota-video">
-                      {r2DailyUsage.video} / {DAILY_GENERATION_LIMITS.video}
-                    </span>
-                  </div>
-                  <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-rose-500"
-                      style={{
-                        width: `${Math.min(100, (r2DailyUsage.video / DAILY_GENERATION_LIMITS.video) * 100)}%`,
-                      }}
-                    />
-                  </div>
-                  <span className="block text-[10px] text-slate-500">
-                    Max 1 video / day per user
-                  </span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase text-slate-400">Music Tracks / Day</span>
-                    <span className="text-amber-300 font-bold" data-testid="r2-quota-music">
-                      {r2DailyUsage.music} / {DAILY_GENERATION_LIMITS.music}
-                    </span>
-                  </div>
-                  <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-amber-400"
-                      style={{
-                        width: `${Math.min(100, (r2DailyUsage.music / DAILY_GENERATION_LIMITS.music) * 100)}%`,
-                      }}
-                    />
-                  </div>
-                  <span className="block text-[10px] text-slate-500">
-                    Max 3 music tracks / day per user
-                  </span>
-                </div>
-              </div>
-
-              {/* wrangler.toml R2 Binding Preview */}
-              <div className="space-y-1">
-                <span className="block text-[11px] font-bold text-slate-300 font-mono">
-                  wrangler.toml Change (<code className="text-sky-300">[[r2_buckets]]</code>):
-                </span>
-                <pre className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-mono text-sky-300 overflow-x-auto whitespace-pre-wrap">
-                  {`[[r2_buckets]]\nbinding = "MEDIA"\nbucket_name = "movie-city-media"\npreview_bucket_name = "movie-city-media-preview"`}
-                </pre>
-              </div>
-
-              {/* Real End-to-End Test Trigger (Generate ONE Image -> R2 -> Save URL in Firestore -> Load in UI) */}
-              <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
-                <div className="space-y-1">
-                  <label
-                    htmlFor="r2-e2e-prompt-input"
-                    className="block text-xs font-bold text-white"
-                  >
-                    Real End-to-End Test Prompt (Generates 1 Image &rarr; R2 Bucket &ldquo;movie-city-media&rdquo; &rarr; Saves URL in Firestore &rarr; Loads in UI):
-                  </label>
-                  <input
-                    id="r2-e2e-prompt-input"
-                    type="text"
-                    value={r2E2ePrompt}
-                    onChange={(e) => setR2E2ePrompt(e.target.value)}
-                    className="w-full min-h-[40px] bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white"
-                  />
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    data-testid="run-r2-e2e-image-btn"
-                    disabled={r2E2eRunning}
-                    onClick={() => handleRunR2MediaPipeline('image')}
-                    className="min-h-[42px] px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-slate-950 text-xs font-black flex items-center gap-1.5 shadow-md"
-                  >
-                    <ImageIcon className="w-4 h-4" />
-                    <span>
-                      {r2E2eRunning
-                        ? 'Running E2E (Worker Quota -> AI -> R2 PUT -> Firestore -> UI)...'
-                        : 'Run Real E2E Test: Generate 1 Image → R2 → Firestore'}
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    data-testid="run-r2-music-btn"
-                    disabled={r2E2eRunning}
-                    onClick={() =>
-                      handleRunR2MediaPipeline(
-                        'music',
-                        'Dramatic Filipino teleserye orchestral strings cue'
-                      )
-                    }
-                    className="min-h-[42px] px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold"
-                  >
-                    Generate 1 Music Track &rarr; R2
-                  </button>
-                </div>
-
-                {r2E2eError && (
-                  <div
-                    role="alert"
-                    data-testid="r2-e2e-error-alert"
-                    className="p-3 rounded-xl bg-red-950/70 border border-red-700 text-red-200 text-xs font-mono break-words"
-                  >
-                    Error: {r2E2eError}
-                  </div>
-                )}
-
-                {r2WorkerGenResult && (
-                  <div
-                    data-testid="r2-e2e-diagnostics"
-                    className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-[11px] font-mono"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-emerald-300 font-bold">
-                      <span>
-                        ✓ Worker Quota Checked Before AI: {String(r2WorkerGenResult.diagnostics?.quotaCheckedBeforeAi)} · R2 Key: {r2WorkerGenResult.r2Key}
-                      </span>
-                      <span className="text-sky-300">
-                        {r2WorkerGenResult.sizeBytes} bytes ({r2WorkerGenResult.contentType})
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-slate-300">
-                      <div>
-                        PUT Route:{' '}
-                        <code className="text-emerald-300">
-                          {r2WorkerGenResult.diagnostics?.workerPutUploadRoute}
-                        </code>
-                      </div>
-                      <div>
-                        GET Route:{' '}
-                        <code className="text-amber-300">
-                          {r2WorkerGenResult.diagnostics?.workerGetMediaRoute}
-                        </code>
-                      </div>
-                      <div>
-                        AI Model:{' '}
-                        <code className="text-sky-300">
-                          {r2WorkerGenResult.diagnostics?.geminiModelUsed}
-                        </code>{' '}
-                        (Live AI OK: {String(r2WorkerGenResult.diagnostics?.geminiGenerationOk)})
-                      </div>
-                      <div>
-                        Firestore Doc ID:{' '}
-                        <code className="text-rose-300">
-                          {r2LoadedFirestoreDoc?.id || r2SavedFirestoreDoc?.id || 'pending'}
-                        </code>
-                      </div>
-                    </div>
-                    {r2WorkerGenResult.diagnostics?.geminiError && (
-                      <div className="text-amber-300 break-words">
-                        Real Gemini API Notice: {r2WorkerGenResult.diagnostics.geminiError}
-                      </div>
-                    )}
-                    {r2WorkerGenResult.diagnostics?.cloudflareLiveError && (
-                      <div className="text-slate-400 break-words">
-                        Cloudflare Remote R2 Status: {r2WorkerGenResult.diagnostics.cloudflareLiveError}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {r2LoadedFirestoreDoc && (
-                  <div
-                    data-testid="r2-loaded-firestore-card"
-                    className="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-600/50 space-y-3"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                      <span className="font-bold text-emerald-300">
-                        ✓ Loaded Back from Cloud Firestore (<code>/r2_media_assets/{r2LoadedFirestoreDoc.id}</code>)
-                      </span>
-                      <span className="font-mono text-[11px] text-sky-300" data-testid="r2-loaded-url">
-                        URL: {r2LoadedFirestoreDoc.url}
-                      </span>
-                    </div>
-
-                    {r2LoadedFirestoreDoc.mediaType === 'image' && (
-                      <div className="overflow-hidden rounded-xl border border-slate-800 bg-black max-w-md">
-                        <img
-                          data-testid="r2-loaded-image"
-                          src={r2LoadedFirestoreDoc.url}
-                          alt={r2LoadedFirestoreDoc.prompt}
-                          className="w-full h-auto object-cover"
-                        />
-                      </div>
-                    )}
-
-                    {r2LoadedFirestoreDoc.mediaType === 'music' && (
-                      <audio
-                        data-testid="r2-loaded-audio"
-                        controls
-                        src={r2LoadedFirestoreDoc.url}
-                        className="w-full"
-                      />
-                    )}
-
-                    <pre className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-[10px] font-mono text-slate-300 overflow-x-auto whitespace-pre-wrap">
-                      {JSON.stringify(r2LoadedFirestoreDoc, null, 2)}
-                    </pre>
-                  </div>
-                )}
-              </div>
-            </div>
-
             <div className="space-y-4">
+              {/* Creator Name */}
               <div className="space-y-1.5">
                 <label
                   htmlFor="settings-username"
@@ -4724,6 +3239,7 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
                 />
               </div>
 
+              {/* Theme & Language */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <span className="block text-xs font-semibold text-slate-300">
@@ -4790,520 +3306,75 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
                 </div>
               </div>
 
-              {/* Cloudflare Worker generateWithAPI(prompt, type) & Client IP CIDR Interactive Panel */}
-              <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                  <span className="font-bold text-slate-200">
-                    Cloudflare Worker Endpoint (<code className="text-amber-400">generateWithAPI(prompt, type)</code>)
-                  </span>
-                  <span
-                    className={`font-mono text-[11px] px-2.5 py-0.5 rounded-full border ${
-                      cfWorkerConfigured
-                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                        : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                    }`}
-                  >
-                    {cfWorkerConfigured
-                      ? `Token: ${cfTokenName} · CIDR: ${cfClientIpCidr}`
-                      : 'Env Var Ready (CF_API_TOKEN)'}
-                  </span>
-                </div>
-
-                {/* Integrated Token Name & Client IP CIDR Details Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-                  <div className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800 space-y-0.5">
-                    <span className="block text-[10px] uppercase font-mono text-slate-400">
-                      Cloudflare Token Name
-                    </span>
-                    <span className="block text-xs font-mono font-bold text-emerald-400 truncate">
-                      {cfTokenName}
-                    </span>
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800 space-y-0.5">
-                    <span className="block text-[10px] uppercase font-mono text-slate-400">
-                      Client IP Address
-                    </span>
-                    <span className="block text-xs font-mono font-bold text-sky-400 truncate">
-                      {cfClientIp}
-                    </span>
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800 space-y-0.5">
-                    <span className="block text-[10px] uppercase font-mono text-slate-400">
-                      Client IP Address CIDR
-                    </span>
-                    <span className="block text-xs font-mono font-bold text-amber-400 truncate">
-                      {cfClientIpCidr}
-                    </span>
-                  </div>
-                </div>
-
-                <p className="text-[11px] text-slate-400 leading-relaxed">
-                  {providerEndpointNote}. Account ID: <code className="text-slate-200">{cfAccountId}</code> · Tumatanggap ng{' '}
-                  <code className="text-slate-200">type: "video" | "image" | "script"</code>, may{' '}
-                  <strong>30s AbortController timeout</strong>, loading state,{' '}
-                  <code className="text-slate-200">X-Client-IP-CIDR: {cfClientIpCidr}</code>, at{' '}
-                  <code className="text-slate-200">Authorization: Bearer [CF_API_TOKEN]</code> mula sa server env.
-                </p>
-
-                <div className="flex flex-wrap items-center gap-2 pt-1">
-                  {(['script', 'image', 'video'] as const).map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setCfRequestType(t)}
-                      className={`min-h-[38px] px-3 py-1.5 rounded-lg text-xs font-bold uppercase border ${
-                        cfRequestType === t
-                          ? 'bg-amber-500 text-slate-950 border-amber-400'
-                          : 'bg-slate-900 text-slate-300 border-slate-800'
+              {/* Developer Mode Switch (Default OFF, Saved in localStorage) */}
+              <div
+                data-testid="developer-mode-settings-card"
+                className="p-4 bg-slate-950 border border-slate-800 rounded-xl flex flex-wrap items-center justify-between gap-4"
+              >
+                <div className="space-y-1 max-w-xl">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-white">Developer Mode</span>
+                    <span
+                      data-testid="developer-mode-status-badge"
+                      className={`text-[10px] font-mono font-black uppercase px-2 py-0.5 rounded border ${
+                        isDeveloperMode
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                          : 'bg-slate-900 text-slate-400 border-slate-700'
                       }`}
                     >
-                      type: "{t}"
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    disabled={cfLoading}
-                    onClick={() => handleCloudflareWorkerCall()}
-                    className="min-h-[38px] px-4 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-bold flex items-center gap-1.5"
-                  >
-                    <Play className="w-3.5 h-3.5" />
-                    <span>
-                      {cfLoading
-                        ? `Nag-aantay sa Worker (${cfRequestType}, max 30s)...`
-                        : `Test generateWithAPI(prompt, "${cfRequestType}")`}
+                      {isDeveloperMode ? 'ON' : 'OFF (Default)'}
                     </span>
-                  </button>
-                  <button
-                    type="button"
-                    disabled={cfVerifyLoading}
-                    onClick={handleVerifyCloudflareToken}
-                    className="min-h-[38px] px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-slate-950 text-xs font-bold flex items-center gap-1.5"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>
-                      {cfVerifyLoading
-                        ? 'Verifying Token...'
-                        : `Verify Token (${cfTokenName})`}
-                    </span>
-                  </button>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    {language === 'tl'
+                      ? 'Kapag naka-OFF (default), nakatago ang lahat ng teknikal at DevOps panels para sa malinis na Creator experience. Kapag naka-ON, lilitaw ang "Developer" tab sa bottom navigation.'
+                      : 'When OFF (default), technical and DevOps panels are hidden for a clean Creator view. When ON, the "Developer" tab appears in the bottom navigation.'}
+                  </p>
                 </div>
 
-                {cfVerifyResult && (
-                  <div
-                    role="status"
-                    className={`p-3 rounded-xl border text-xs space-y-1 ${
-                      cfVerifyResult.ok
-                        ? 'bg-emerald-950/50 border-emerald-700/70 text-emerald-200'
-                        : 'bg-red-950/60 border-red-700/70 text-red-200'
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={isDeveloperMode}
+                    data-testid="developer-mode-switch"
+                    onClick={() => {
+                      const next = !isDeveloperMode;
+                      handleSetDeveloperMode(next);
+                      showToast(
+                        next
+                          ? 'Developer Mode: ON — Lumitaw na ang Developer tab sa bottom nav.'
+                          : 'Developer Mode: OFF — Nakatago na ang mga teknikal na bahagi.'
+                      );
+                    }}
+                    className={`min-h-[42px] px-4 py-2 rounded-xl text-xs font-black border transition-colors flex items-center gap-2 ${
+                      isDeveloperMode
+                        ? 'bg-amber-500 text-slate-950 border-amber-400'
+                        : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700'
                     }`}
-                  >
-                    <div className="flex items-center justify-between gap-2 font-mono text-[11px]">
-                      <span className="font-bold">
-                        Token: {cfVerifyResult.tokenName} · CIDR: {cfVerifyResult.clientIpCidr}
-                      </span>
-                      <span className="uppercase px-2 py-0.5 rounded bg-slate-900 text-amber-300">
-                        {cfVerifyResult.statusText}
-                      </span>
-                    </div>
-                    <p className="text-[11px] break-words">{cfVerifyResult.message}</p>
-                  </div>
-                )}
-
-                {cfResult && (
-                  <div
-                    role="status"
-                    className={`p-3 rounded-xl border text-xs space-y-2 ${
-                      cfResult.ok
-                        ? 'bg-emerald-950/50 border-emerald-700/70 text-emerald-200'
-                        : 'bg-red-950/60 border-red-700/70 text-red-200'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-bold">
-                        {cfResult.ok
-                          ? `Worker Success (${cfResult.type} · ${cfResult.elapsedMs}ms · ${cfResult.clientIpCidr || cfClientIpCidr})`
-                          : `Worker Error (${cfResult.type} · ${cfResult.elapsedMs}ms)`}
-                      </span>
-                      {!cfResult.ok && (
-                        <button
-                          type="button"
-                          onClick={() => handleCloudflareWorkerCall(cfResult.type)}
-                          className="min-h-[36px] px-3 py-1 bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold text-xs flex items-center gap-1"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                          <span>Retry</span>
-                        </button>
-                      )}
-                    </div>
-                    <p className="text-[11px] break-words">
-                      {cfResult.ok
-                        ? cfResult.url || cfResult.content || 'OK'
-                        : cfResult.error}
-                    </p>
-                  </div>
-                )}
-
-                {/* ==================== CLOUDFLARE HYPERDRIVE CONNECTION BUILDER ==================== */}
-                <div className="mt-4 pt-4 border-t border-slate-800 space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                        <HardDrive className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Cloudflare Hyperdrive Connection</span>
-                      </span>
-                      <p className="text-[11px] text-slate-400">
-                        Kopyahin o i-configure ang <strong>Configuration name</strong> at{' '}
-                        <strong>Connection string</strong> para sa Cloudflare Dashboard &rarr; Hyperdrive
-                      </p>
-                    </div>
-                    <span className="font-mono text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                      Binding: HYPERDRIVE
-                    </span>
-                  </div>
-
-                  {/* Preset Selector Buttons */}
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {HYPERDRIVE_CONNECTION_PRESETS.map((preset) => (
-                      <button
-                        key={preset.id}
-                        type="button"
-                        onClick={() => {
-                          setHyperdriveConfigName(preset.configName);
-                          setHyperdriveConnectionString(preset.connectionString);
-                          setHyperdriveResult(null);
-                        }}
-                        className={`min-h-[34px] px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors ${
-                          hyperdriveConfigName === preset.configName
-                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
-                            : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-700'
-                        }`}
-                      >
-                        {preset.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Field 1: Configuration name */}
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <label
-                        htmlFor="hyperdrive-config-name"
-                        className="text-[11px] font-bold text-slate-300"
-                      >
-                        Configuration name:
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleCopyText('Configuration name', hyperdriveConfigName)
-                        }
-                        className="min-h-[30px] px-2.5 py-0.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[11px] font-semibold text-amber-300 flex items-center gap-1"
-                      >
-                        <Copy className="w-3 h-3" />
-                        <span>Copy Name</span>
-                      </button>
-                    </div>
-                    <input
-                      id="hyperdrive-config-name"
-                      type="text"
-                      value={hyperdriveConfigName}
-                      onChange={(e) => setHyperdriveConfigName(e.target.value)}
-                      placeholder="flat-dream-15fc-hyperdrive"
-                      className="w-full min-h-[40px] bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs font-mono text-emerald-300"
-                    />
-                  </div>
-
-                  {/* Field 2: Server-Isolated Connection String Status (Redacted) */}
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-slate-300">
-                        Server-Side Connection String (<code className="text-amber-300">process.env.CF_HYPERDRIVE_CONNECTION_STRING</code>):
-                      </span>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-700/60">
-                        SERVER_ENV_ISOLATED
-                      </span>
-                    </div>
-                    <div
-                      id="hyperdrive-connection-string"
-                      className="w-full min-h-[40px] bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-sky-300 flex items-center select-all"
-                    >
-                      {parseHyperdriveConnectionString(hyperdriveConnectionString)
-                        .maskedConnectionString || '[REDACTED_IN_SERVER_ENV]'}
-                    </div>
-                  </div>
-
-                  {/* Live Parsed Connection Breakdown */}
-                  {(() => {
-                    const parsed = parseHyperdriveConnectionString(hyperdriveConnectionString);
-                    return parsed.valid ? (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono">
-                        <div className="p-2 rounded-lg bg-slate-900/90 border border-slate-800">
-                          <span className="block text-[9px] uppercase text-slate-400">Scheme / Port</span>
-                          <span className="text-emerald-300 font-bold">
-                            {parsed.scheme} : {parsed.port}
-                          </span>
-                        </div>
-                        <div className="p-2 rounded-lg bg-slate-900/90 border border-slate-800">
-                          <span className="block text-[9px] uppercase text-slate-400">Host</span>
-                          <span className="text-sky-300 font-bold truncate block">{parsed.host}</span>
-                        </div>
-                        <div className="p-2 rounded-lg bg-slate-900/90 border border-slate-800">
-                          <span className="block text-[9px] uppercase text-slate-400">Database</span>
-                          <span className="text-amber-300 font-bold truncate block">
-                            {parsed.database}
-                          </span>
-                        </div>
-                        <div className="p-2 rounded-lg bg-slate-900/90 border border-slate-800">
-                          <span className="block text-[9px] uppercase text-slate-400">User / SSL</span>
-                          <span className="text-slate-200 font-bold truncate block">
-                            {parsed.user} ({parsed.sslmode})
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-[11px] text-amber-300">{parsed.error}</p>
-                    );
-                  })()}
-
-                  {/* Create Hyperdrive Connection Button */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      disabled={hyperdriveLoading}
-                      onClick={handleCreateHyperdrive}
-                      className="min-h-[40px] px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 text-xs font-black flex items-center gap-1.5"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>
-                        {hyperdriveLoading
-                          ? 'Creating Hyperdrive Connection...'
-                          : 'Create Hyperdrive Connection'}
-                      </span>
-                    </button>
-                  </div>
-
-                  {hyperdriveResult && (
-                    <div
-                      role="status"
-                      className={`p-3 rounded-xl border text-xs space-y-2 ${
-                        hyperdriveResult.ok
-                          ? 'bg-emerald-950/50 border-emerald-700/70 text-emerald-200'
-                          : 'bg-red-950/60 border-red-700/70 text-red-200'
-                      }`}
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-[11px]">
-                        <span className="font-bold">
-                          {hyperdriveResult.ok
-                            ? `Hyperdrive Ready: ${hyperdriveResult.configName} (${hyperdriveResult.configId})`
-                            : 'Hyperdrive Validation Error'}
-                        </span>
-                        {hyperdriveResult.wranglerToml && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleCopyText('wrangler.toml snippet', hyperdriveResult.wranglerToml)
-                            }
-                            className="min-h-[28px] px-2.5 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-amber-300 border border-slate-700 text-[10px] font-bold flex items-center gap-1"
-                          >
-                            <Copy className="w-3 h-3" />
-                            <span>Copy wrangler.toml</span>
-                          </button>
-                        )}
-                      </div>
-                      <p className="text-[11px] break-words">{hyperdriveResult.message}</p>
-                      {hyperdriveResult.wranglerToml && (
-                        <pre className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-[10px] font-mono text-amber-300 overflow-x-auto whitespace-pre-wrap">
-                          {hyperdriveResult.wranglerToml}
-                        </pre>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* ==================== SUPABASE SYSTEM & APP BUILD INTEGRATION PANEL ==================== */}
-              <div className="p-4 bg-slate-950 border border-emerald-800/50 rounded-xl space-y-3.5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <Layers className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>
-                        Supabase System & App Build Integration (
-                        <code className="text-emerald-400">{supabaseProjectRef}</code>)
-                      </span>
-                    </span>
-                    <p className="text-[11px] text-slate-400">
-                      Naka-bind sa iyong Supabase Project URL, Publishable Key, Direct PostgreSQL Connection String, at CLI Setup Commands
-                    </p>
-                  </div>
-                  <span className="font-mono text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
-                    Bound: {supabaseProjectRef}
-                  </span>
-                </div>
-
-                {/* 1. Project URL */}
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <label
-                      htmlFor="supabase-project-url"
-                      className="text-[11px] font-bold text-slate-300"
-                    >
-                      Project URL:
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyText('Supabase Project URL', supabaseProjectUrl)}
-                      className="min-h-[28px] px-2.5 py-0.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[11px] font-semibold text-emerald-300 flex items-center gap-1"
-                    >
-                      <Copy className="w-3 h-3" />
-                      <span>Copy URL</span>
-                    </button>
-                  </div>
-                  <input
-                    id="supabase-project-url"
-                    type="text"
-                    value={supabaseProjectUrl}
-                    onChange={(e) => setSupabaseProjectUrl(e.target.value)}
-                    className="w-full min-h-[38px] bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs font-mono text-emerald-300"
-                  />
-                </div>
-
-                {/* 2. Server-Isolated Supabase Keys & Direct Connection Status */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
-                    <span className="block text-[10px] uppercase font-mono text-slate-400">
-                      Supabase Key (Server Proxy Only)
-                    </span>
-                    <span
-                      id="supabase-publishable-key"
-                      className="block text-xs font-mono font-bold text-amber-300 truncate"
-                    >
-                      process.env.SUPABASE_PUBLISHABLE_KEY [ISOLATED]
-                    </span>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
-                    <span className="block text-[10px] uppercase font-mono text-slate-400">
-                      Direct PostgreSQL (Server Proxy Only)
-                    </span>
-                    <span
-                      id="supabase-direct-connection-string"
-                      className="block text-xs font-mono font-bold text-sky-300 truncate"
-                    >
-                      {parseHyperdriveConnectionString(supabaseDirectConnectionString)
-                        .maskedConnectionString || 'process.env.SUPABASE_DIRECT_CONNECTION_STRING'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* 4. CLI Setup Commands */}
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-slate-300">
-                      CLI setup command (<code className="text-emerald-400">supabase/config.toml</code>):
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleCopyText(
-                          'Supabase CLI Setup Commands',
-                          formatSupabaseCliSetupCommands(supabaseProjectRef)
-                        )
-                      }
-                      className="min-h-[28px] px-2.5 py-0.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[11px] font-semibold text-emerald-300 flex items-center gap-1"
-                    >
-                      <Copy className="w-3 h-3" />
-                      <span>Copy CLI Commands</span>
-                    </button>
-                  </div>
-                  <pre className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono text-emerald-300 overflow-x-auto whitespace-pre-wrap">
-                    {SUPABASE_CLI_SETUP_COMMANDS.join('\n')}
-                  </pre>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex flex-wrap items-center gap-2 pt-1">
-                  <button
-                    type="button"
-                    disabled={supabaseVerifyLoading}
-                    onClick={handleVerifySupabase}
-                    className="min-h-[40px] px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-slate-950 text-xs font-black flex items-center gap-1.5"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>
-                      {supabaseVerifyLoading
-                        ? 'Verifying Supabase...'
-                        : `Verify & Connect Supabase (${supabaseProjectRef})`}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    disabled={hyperdriveLoading}
-                    onClick={handleBindSupabaseToHyperdrive}
-                    className="min-h-[40px] px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 text-xs font-black flex items-center gap-1.5"
-                  >
-                    <HardDrive className="w-3.5 h-3.5" />
-                    <span>Bind Direct Connection to Hyperdrive</span>
-                  </button>
-                  <button
-                    type="button"
-                    disabled={supabaseSyncLoading}
-                    onClick={handleSyncActiveProjectToSupabase}
-                    className="min-h-[40px] px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white text-xs font-bold flex items-center gap-1.5"
                   >
                     <Layers className="w-3.5 h-3.5" />
-                    <span>
-                      {supabaseSyncLoading
-                        ? 'Syncing to Supabase...'
-                        : 'Sync Active Project to Supabase'}
-                    </span>
+                    <span>{isDeveloperMode ? 'Developer Mode: ON' : 'Developer Mode: OFF'}</span>
                   </button>
+
+                  {isDeveloperMode && (
+                    <button
+                      type="button"
+                      data-testid="open-developer-tab-btn"
+                      onClick={() => setBottomTab('developer')}
+                      className="min-h-[42px] px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold"
+                    >
+                      Buksan ang Developer Tab &rarr;
+                    </button>
+                  )}
                 </div>
-
-                {supabaseVerifyResult && (
-                  <div
-                    role="status"
-                    className={`p-3 rounded-xl border text-xs space-y-1.5 ${
-                      supabaseVerifyResult.ok
-                        ? 'bg-emerald-950/50 border-emerald-700/70 text-emerald-200'
-                        : 'bg-red-950/60 border-red-700/70 text-red-200'
-                    }`}
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-[11px]">
-                      <span className="font-bold">
-                        Supabase Project: {supabaseVerifyResult.projectRef} · Host:{' '}
-                        {supabaseVerifyResult.dbHost}:{supabaseVerifyResult.dbPort}
-                      </span>
-                      <span className="uppercase px-2 py-0.5 rounded bg-slate-900 text-emerald-300">
-                        {supabaseVerifyResult.restStatus}
-                      </span>
-                    </div>
-                    <p className="text-[11px] break-words">{supabaseVerifyResult.message}</p>
-                  </div>
-                )}
-
-                {supabaseSyncResult && (
-                  <div
-                    role="status"
-                    className="p-3 rounded-xl border bg-sky-950/50 border-sky-700/70 text-sky-200 text-xs space-y-1"
-                  >
-                    <div className="flex items-center justify-between font-mono text-[11px]">
-                      <span className="font-bold">
-                        Synced to {supabaseSyncResult.projectUrl}
-                      </span>
-                      <span className="uppercase px-2 py-0.5 rounded bg-slate-900 text-sky-300">
-                        {supabaseSyncResult.mode}
-                      </span>
-                    </div>
-                    <p className="text-[11px] break-words">{supabaseSyncResult.message}</p>
-                  </div>
-                )}
               </div>
 
               {/* Google Account & Cloud Project Sync Panel */}
               <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                   <span className="font-bold text-slate-200">
-                    Google Account & Cloud Project Sync
+                    Google Account &amp; Cloud Project Sync
                   </span>
                   <span className="text-[11px] font-mono text-emerald-400">
                     {firebaseUser ? `${firebaseUser.email}` : 'Not Signed In'}
@@ -5371,7 +3442,7 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold text-slate-200 flex items-center gap-1.5">
                     <HardDrive className="w-4 h-4 text-sky-400" />
-                    <span>Storage Usage (Metadata & SVG Thumbnails Only)</span>
+                    <span>Storage Usage (Metadata &amp; SVG Thumbnails Only)</span>
                   </span>
                   <span className="font-mono text-sky-400 font-bold">
                     {storageUsedKb} KB / 5,120 KB
@@ -5398,6 +3469,924 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ==================== 6. DEVELOPER TAB (Visible ONLY when Developer Mode is ON) ==================== */}
+        {isDeveloperMode && bottomTab === 'developer' && (
+          <div
+            data-testid="developer-tab-view"
+            className="space-y-8"
+          >
+            {/* Keep sensitive variables referenced in code while omitting them from UI display */}
+            {(() => {
+              void cfTokenName;
+              void cfAccountId;
+              void cfClientIp;
+              void cfClientIpCidr;
+              void providerEndpointNote;
+              void supabaseDirectConnectionString;
+              return null;
+            })()}
+
+            <div className="p-5 bg-slate-900/90 border border-amber-500/40 rounded-2xl flex flex-wrap items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-md bg-amber-500 text-slate-950 font-mono text-xs font-black uppercase">
+                    DEVELOPER MODE: ON
+                  </span>
+                  <h1 className="text-xl sm:text-2xl font-black text-white">
+                    Developer &amp; Technical Hub
+                  </h1>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Narito ang lahat ng teknikal na bahagi, DevOps panels, terminal logs, at test controls na nakatago sa default na Creator view.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  handleSetDeveloperMode(false);
+                  setBottomTab('settings');
+                }}
+                className="min-h-[40px] px-4 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200"
+              >
+                I-off ang Developer Mode
+              </button>
+            </div>
+
+            {/* ==================== SEKSYON 1: MARILAG WORKSPACE & RENDER BACKEND SWITCHER ==================== */}
+            <section
+              data-testid="dev-section-marilag-workspace"
+              className="p-5 bg-slate-900/90 border border-slate-800 rounded-2xl space-y-3"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold">
+                    Seksyon 1 · Render Backend Workspace
+                  </span>
+                  <h2 className="text-base sm:text-lg font-black text-white">
+                    Marilag Render Queue &amp; Engineering Workspace Switcher
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    Buksan ang Marilag Workspace (Render Queue, Gallery, Live HLS, Settings, Google Drive, 3D Cluster, AI Media Lab).
+                  </p>
+                </div>
+                {onSwitchToRenderBackend && (
+                  <button
+                    type="button"
+                    data-testid="dev-open-marilag-workspace-btn"
+                    onClick={onSwitchToRenderBackend}
+                    className="min-h-[42px] px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black flex items-center gap-2 shadow-md"
+                  >
+                    <Layers className="w-4 h-4" />
+                    <span>Buksan ang Marilag Workspace</span>
+                  </button>
+                )}
+              </div>
+            </section>
+
+            {/* ==================== SEKSYON 2: TERMINAL & ACTION HISTORY LIVE LOG ==================== */}
+            <section
+              data-testid="dev-section-terminal-log"
+              className="p-5 bg-slate-900/90 border border-slate-800 rounded-2xl space-y-4"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-bold">
+                    Seksyon 2 · Terminal &amp; Live Engine Logs
+                  </span>
+                  <h2 className="text-base sm:text-lg font-black text-white">
+                    Terminal / Action History Live Log &amp; Error Simulation
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    Subaybayan ang real-time execution logs ng 5-Step Akzyon Engine at subukan ang error-handling / retry flow.
+                  </p>
+                </div>
+                <label className="inline-flex items-center gap-2 text-xs text-slate-300 cursor-pointer bg-slate-950 border border-slate-800 px-3 py-2 rounded-xl">
+                  <input
+                    type="checkbox"
+                    checked={simulateErrorNext}
+                    onChange={(e) => setSimulateErrorNext(e.target.checked)}
+                    className="rounded border-slate-700 bg-slate-900 text-rose-600 focus:ring-rose-500"
+                  />
+                  <span>Subukan ang Error Handling &amp; Retry button sa susunod na run</span>
+                </label>
+              </div>
+
+              <LiveDirectorProgressStudio
+                progressPct={genProgressPct}
+                logs={directorTerminalLogs}
+                isComplete={!isGenerating && genProgressPct === 100}
+                title="3!2!1! Akzyon AI Director Studio (Live Terminal Log)"
+                showTerminalLog={true}
+              />
+            </section>
+
+            {/* ==================== SEKSYON 3: LTX-VIDEO COMFYUI & GOOGLE COLAB BRIDGE ==================== */}
+            <section
+              data-testid="dev-section-ltx-colab"
+              className="p-5 bg-slate-900/90 border border-slate-800 rounded-2xl space-y-5"
+            >
+              <div className="space-y-1">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-rose-400 font-bold">
+                  Seksyon 3 · ComfyUI &amp; Colab GPU Bridge
+                </span>
+                <h2 className="text-base sm:text-lg font-black text-white">
+                  LTX-Video 2B v0.9.5 ComfyUI Code Viewer &amp; Google Colab Bridge
+                </h2>
+                <p className="text-xs text-slate-400">
+                  I-configure ang Google Colab Cloudflare Tunnel URL at siyasatin ang Python ComfyUI workflow code.
+                </p>
+              </div>
+
+              <VideoGenerationPanel
+                showDeveloperControls={true}
+                onVideoSelected={(url, title) => {
+                  setFeaturedEpisodeVideoUrl(url);
+                  setFeaturedEpisodeTitle(title);
+                  setCombinedVideoUrl(url);
+                  showToast('Na-generate ang bagong MP4 video at naka-load na sa Video Player!');
+                }}
+              />
+
+              {/* LTX-Video 2B v0.9.5 (ComfyUI + PyTorch) Code Viewer */}
+              <div
+                data-testid="ltx-video-studio-panel"
+                className="bg-slate-950 border border-rose-500/40 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-md bg-rose-600 text-white font-mono text-[11px] font-black uppercase">
+                        LTX-Video 2B v0.9.5 · ComfyUI
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono text-[11px] font-bold">
+                        ltx-video-2b-v0.9.5.safetensors
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono text-[11px] font-bold">
+                        {ltxParams.width}x{ltxParams.height} · {ltxValidation.effectiveDecodedFrames} Frames · {ltxParams.fps}fps
+                      </span>
+                    </div>
+                    <h3 className="text-sm sm:text-base font-black text-white">
+                      LTX-Video Photorealistic Human Motion &amp; ComfyUI Pipeline Inspector
+                    </h3>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      data-testid="ltx-run-pipeline-btn"
+                      disabled={ltxGenerating}
+                      onClick={() => handleGenerateLtxVideo()}
+                      className="min-h-[40px] px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-black flex items-center gap-1.5 shadow-lg"
+                    >
+                      <Film className="w-4 h-4" />
+                      <span>
+                        {ltxGenerating
+                          ? 'Generating Photorealistic Human Video...'
+                          : 'Generate Real-Human Video (LTX-Video 2B → R2)'}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDownloadFixedLtxColabNotebook}
+                      className="min-h-[40px] px-3 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold"
+                    >
+                      Download Fixed .ipynb
+                    </button>
+                    <button
+                      type="button"
+                      data-testid="ltx-toggle-code-btn"
+                      onClick={() => setShowLtxColabCode((prev: boolean) => !prev)}
+                      className="min-h-[40px] px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-sky-300 text-xs font-bold"
+                    >
+                      {showLtxColabCode ? 'Hide ComfyUI Python Code' : 'View ComfyUI Python Code'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Scene Input + Sampler Selector */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 bg-slate-900/80 border border-slate-800 rounded-xl p-3.5">
+                  <div className="lg:col-span-2 space-y-1">
+                    <label
+                      htmlFor="ltx-scene-prompt-input"
+                      className="block text-[11px] font-bold text-slate-300"
+                    >
+                      Photorealistic Human Scene Prompt:
+                    </label>
+                    <input
+                      id="ltx-scene-prompt-input"
+                      type="text"
+                      value={ltxParams.positive_prompt}
+                      onChange={(e) =>
+                        setLtxParams((prev) => ({ ...prev, positive_prompt: e.target.value }))
+                      }
+                      className="w-full min-h-[40px] bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="ltx-sampler-select"
+                      className="block text-[11px] font-bold text-slate-300"
+                    >
+                      ComfyUI Sampler:
+                    </label>
+                    <select
+                      id="ltx-sampler-select"
+                      value={ltxParams.sampler_name}
+                      onChange={(e) =>
+                        setLtxParams((prev) => ({
+                          ...prev,
+                          sampler_name: e.target.value as LtxSamplerName,
+                        }))
+                      }
+                      className="w-full min-h-[40px] bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-amber-300 font-semibold"
+                    >
+                      {LTX_SAMPLERS.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {ltxError && (
+                  <div className="p-3 rounded-xl bg-red-950/60 border border-red-700 text-red-200 text-xs font-mono">
+                    LTX-Video Error: {ltxError}
+                  </div>
+                )}
+
+                {ltxVideoUrl && (
+                  <div
+                    data-testid="ltx-pipeline-result"
+                    className="p-3 rounded-xl border bg-emerald-950/50 border-emerald-600/60 text-emerald-200 text-xs font-mono flex flex-wrap items-center justify-between gap-2"
+                  >
+                    <span>
+                      ✓ LTX-Video Ready ({ltxParams.width}x{ltxParams.height} ·{' '}
+                      {ltxValidation.effectiveDecodedFrames} frames @ {ltxParams.fps}fps · Seed:{' '}
+                      {ltxSeedUsed || 'auto'})
+                    </span>
+                    <span className="text-sky-300">{ltxVideoUrl}</span>
+                  </div>
+                )}
+
+                {showLtxColabCode && (
+                  <div className="space-y-1 pt-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-mono font-bold text-amber-300">
+                        ComfyUI LTX-Video 2B v0.9.5 Colab Python Script
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleCopyText(
+                            'LTX-Video Colab Script',
+                            buildFixedLtxColabScript(ltxParams)
+                          )
+                        }
+                        className="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-[10px] font-bold text-amber-300"
+                      >
+                        Copy Script
+                      </button>
+                    </div>
+                    <pre className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-[10px] font-mono text-emerald-300 overflow-x-auto max-h-56">
+                      {buildFixedLtxColabScript(ltxParams)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* ==================== SEKSYON 4: CINEMATIC PROMPT SKILL INSPECTOR ==================== */}
+            <section
+              data-testid="dev-section-cinematic-skill"
+              className="p-5 bg-slate-900/90 border border-slate-800 rounded-2xl space-y-3"
+            >
+              <div className="space-y-1">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-bold">
+                  Seksyon 4 · Prompt Engineering Inspector
+                </span>
+                <h2 className="text-base sm:text-lg font-black text-white">
+                  Cinematic Prompt Skill (<code className="text-emerald-400">skills/cinematicSkill.js</code>)
+                </h2>
+              </div>
+
+              <div
+                data-testid="cinematic-skill-studio-box"
+                className="p-3.5 rounded-xl bg-slate-950 border border-emerald-500/30 space-y-2"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[11px] font-mono font-bold text-emerald-400 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>
+                      skills/cinematicSkill.js &rarr; buildCinematicPrompt(&quot;video&quot;, sceneText) [Auto-Injected Before Video Model]
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleCopyText(
+                        'Cinematic Skill Prompt',
+                        buildCinematicPrompt('video', editPrompt)
+                      )
+                    }
+                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[10px] font-bold text-emerald-300 flex items-center gap-1"
+                  >
+                    <Copy className="w-3 h-3" />
+                    <span>Copy Enhanced Prompt</span>
+                  </button>
+                </div>
+                <p
+                  data-testid="cinematic-skill-output"
+                  className="text-[11px] font-mono text-slate-300 leading-relaxed break-words"
+                >
+                  {buildCinematicPrompt('video', editPrompt)}
+                </p>
+              </div>
+            </section>
+
+            {/* ==================== SEKSYON 5: MOVIECITYAI 6-LAYER ARCHITECTURE BLUEPRINT ==================== */}
+            <section
+              data-testid="dev-section-moviecity-blueprint"
+              className="p-5 bg-slate-900/90 border border-slate-800 rounded-2xl space-y-4"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-rose-400 font-bold">
+                    Seksyon 5 · Full-Stack Architecture Blueprint
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-md bg-rose-600 text-white font-mono text-xs font-black">
+                      {movieCityArch.engineId}
+                    </span>
+                    <h2 className="text-base sm:text-lg font-black text-white">
+                      {movieCityArch.engineName}
+                    </h2>
+                  </div>
+                  <p className="text-[11px] text-slate-400 font-mono">
+                    Package: <strong className="text-emerald-400">{movieCityArch.packageName}</strong> · Version:{' '}
+                    <span className="text-amber-300">{movieCityArch.version}</span> ·{' '}
+                    <span className="text-sky-300">{movieCityArch.preservedSkillNamespace}</span>
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={movieCityOrchestrating}
+                    onClick={handleRunMovieCityAiOrchestration}
+                    className="min-h-[38px] px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-black flex items-center gap-1.5 shadow-md"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>
+                      {movieCityOrchestrating
+                        ? 'Orchestrating moviecityAI...'
+                        : 'Run moviecityAI Full-Stack Orchestration'}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowMovieCityRoutes((prev) => !prev)}
+                    className="min-h-[38px] px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700 text-sky-300 text-xs font-bold"
+                  >
+                    {showMovieCityRoutes ? 'Hide API Route Manifest' : 'Show API Route Manifest'}
+                  </button>
+                </div>
+              </div>
+
+              {movieCityOrchResult && (
+                <div
+                  role="status"
+                  className="p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-600/70 text-emerald-200 space-y-1 text-xs"
+                >
+                  <div className="font-mono text-[11px] font-bold text-emerald-300">
+                    ✓ {movieCityOrchResult.engineId} ({movieCityOrchResult.version}) Orchestration Verified ·{' '}
+                    {movieCityOrchResult.elapsedMs}ms
+                  </div>
+                  <p className="text-[11px] leading-relaxed">{movieCityOrchResult.summaryMessage}</p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                {movieCityArch.subsystems.map((sub) => (
+                  <div
+                    key={sub.id}
+                    className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold text-white">{sub.name}</span>
+                      <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+                        {sub.status}
+                      </span>
+                    </div>
+                    <div className="text-[11px] font-mono text-amber-300 truncate">
+                      {sub.endpointOrBinding}
+                    </div>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">{sub.details}</p>
+                  </div>
+                ))}
+              </div>
+
+              {showMovieCityRoutes && (
+                <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950">
+                  <table className="w-full text-left border-collapse text-[11px]">
+                    <thead>
+                      <tr className="border-b border-slate-800 bg-slate-900 text-slate-400 font-mono uppercase text-[10px]">
+                        <th className="py-2 px-2.5">Method</th>
+                        <th className="py-2 px-2.5">Endpoint</th>
+                        <th className="py-2 px-2.5">Subsystem</th>
+                        <th className="py-2 px-2.5">Purpose</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/70">
+                      {movieCityArch.routes.map((rt) => (
+                        <tr key={`${rt.method}-${rt.path}`} className="hover:bg-slate-900/60">
+                          <td className="py-2 px-2.5 font-mono font-bold text-amber-300">
+                            {rt.method}
+                          </td>
+                          <td className="py-2 px-2.5 font-mono text-sky-300 whitespace-nowrap">
+                            {rt.path}
+                          </td>
+                          <td className="py-2 px-2.5 text-slate-200 whitespace-nowrap">
+                            {rt.subsystem}
+                          </td>
+                          <td className="py-2 px-2.5 text-slate-300">{rt.purpose}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+
+            {/* ==================== SEKSYON 6: CLOUDFLARE R2, WORKER, HYPERDRIVE & SUPABASE DIAGNOSTICS ==================== */}
+            <section
+              data-testid="dev-section-cloud-diagnostics"
+              className="p-5 bg-slate-900/90 border border-slate-800 rounded-2xl space-y-5"
+            >
+              <div className="space-y-1">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-sky-400 font-bold">
+                  Seksyon 6 · Cloud Storage, Quota &amp; Database Testers
+                </span>
+                <h2 className="text-base sm:text-lg font-black text-white">
+                  Cloudflare R2 E2E Tester, Worker API, Hyperdrive &amp; Supabase Diagnostics
+                </h2>
+                <p className="text-xs text-slate-400">
+                  Lahat ng secret, token, account ID, at connection string ay inalis sa UI display at pinananatili lamang sa server-side configuration.
+                </p>
+              </div>
+
+              {/* R2 Media Storage & Daily Quota Tester */}
+              <div
+                data-testid="r2-media-storage-panel"
+                className="p-4 bg-slate-950 border border-sky-700/60 rounded-2xl space-y-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-md bg-sky-500 text-slate-950 font-mono text-xs font-black">
+                        R2: {DEFAULT_R2_BINDING_NAME} ({DEFAULT_R2_BUCKET_NAME})
+                      </span>
+                      <h3 className="text-sm font-black text-white">
+                        Cloudflare R2 Media Storage &amp; Per-User Daily AI Quota
+                      </h3>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      data-testid="reset-r2-quota-btn"
+                      onClick={handleResetR2DailyQuota}
+                      className="min-h-[34px] px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold"
+                    >
+                      Reset Daily Quota
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyText('wrangler.toml R2 binding', formatWranglerR2Toml())}
+                      className="min-h-[34px] px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-sky-300 text-xs font-bold flex items-center gap-1.5"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copy wrangler.toml R2 Binding</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs font-mono">
+                  <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+                    <span className="text-[10px] uppercase text-slate-400">Images ({r2DailyDate})</span>
+                    <span className="text-sky-300 font-bold" data-testid="r2-quota-image">
+                      {r2DailyUsage.image} / {DAILY_GENERATION_LIMITS.image}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+                    <span className="text-[10px] uppercase text-slate-400">Videos / Day</span>
+                    <span className="text-rose-300 font-bold" data-testid="r2-quota-video">
+                      {r2DailyUsage.video} / {DAILY_GENERATION_LIMITS.video}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+                    <span className="text-[10px] uppercase text-slate-400">Music Tracks / Day</span>
+                    <span className="text-amber-300 font-bold" data-testid="r2-quota-music">
+                      {r2DailyUsage.music} / {DAILY_GENERATION_LIMITS.music}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <input
+                    id="r2-e2e-prompt-input"
+                    type="text"
+                    value={r2E2ePrompt}
+                    onChange={(e) => setR2E2ePrompt(e.target.value)}
+                    className="w-full min-h-[40px] bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white"
+                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      data-testid="run-r2-e2e-image-btn"
+                      disabled={r2E2eRunning}
+                      onClick={() => handleRunR2MediaPipeline('image')}
+                      className="min-h-[40px] px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-slate-950 text-xs font-black flex items-center gap-1.5"
+                    >
+                      <ImageIcon className="w-4 h-4" />
+                      <span>
+                        {r2E2eRunning
+                          ? 'Running E2E Test...'
+                          : 'Run Real E2E Test: Generate 1 Image → R2 → Firestore'}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      data-testid="run-r2-video-btn"
+                      disabled={r2E2eRunning}
+                      onClick={() =>
+                        handleRunR2MediaPipeline(
+                          'video',
+                          'Dramatic Filipino teleserye confrontation in heavy Manila rain'
+                        )
+                      }
+                      className="min-h-[40px] px-3.5 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-rose-300 text-xs font-bold"
+                    >
+                      Generate 1 Video &rarr; R2
+                    </button>
+                    <button
+                      type="button"
+                      data-testid="run-r2-music-btn"
+                      disabled={r2E2eRunning}
+                      onClick={() =>
+                        handleRunR2MediaPipeline(
+                          'music',
+                          'Dramatic Filipino teleserye orchestral strings cue'
+                        )
+                      }
+                      className="min-h-[40px] px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold"
+                    >
+                      Generate 1 Music Track &rarr; R2
+                    </button>
+                  </div>
+                </div>
+
+                {r2E2eError && (
+                  <div
+                    role="alert"
+                    data-testid="r2-e2e-error-alert"
+                    className="p-3 rounded-xl bg-red-950/70 border border-red-700 text-red-200 text-xs font-mono break-words"
+                  >
+                    Error: {r2E2eError}
+                  </div>
+                )}
+
+                {r2WorkerGenResult && (
+                  <div
+                    data-testid="r2-e2e-diagnostics"
+                    className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-mono text-emerald-300"
+                  >
+                    ✓ R2 Key: {r2WorkerGenResult.r2Key} · {r2WorkerGenResult.sizeBytes} bytes (
+                    {r2WorkerGenResult.contentType}) · Doc:{' '}
+                    {r2LoadedFirestoreDoc?.id || r2SavedFirestoreDoc?.id || 'saved'}
+                  </div>
+                )}
+
+                {r2LoadedFirestoreDoc && (
+                  <div
+                    data-testid="r2-loaded-firestore-card"
+                    className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-600/50 space-y-2"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <span className="font-bold text-emerald-300">
+                        ✓ Loaded Back from Cloud Firestore
+                      </span>
+                      <span className="font-mono text-[11px] text-sky-300" data-testid="r2-loaded-url">
+                        URL: {r2LoadedFirestoreDoc.url}
+                      </span>
+                    </div>
+                    {r2LoadedFirestoreDoc.mediaType === 'image' && (
+                      <img
+                        data-testid="r2-loaded-image"
+                        src={r2LoadedFirestoreDoc.url}
+                        alt={r2LoadedFirestoreDoc.prompt}
+                        className="max-w-xs rounded-xl border border-slate-800"
+                      />
+                    )}
+                    {r2LoadedFirestoreDoc.mediaType === 'video' && (
+                      <video
+                        data-testid="r2-loaded-video"
+                        controls
+                        playsInline
+                        src={r2LoadedFirestoreDoc.url}
+                        className="max-w-xs rounded-xl border border-slate-800"
+                      />
+                    )}
+                    {r2LoadedFirestoreDoc.mediaType === 'music' && (
+                      <audio
+                        data-testid="r2-loaded-audio"
+                        controls
+                        src={r2LoadedFirestoreDoc.url}
+                        className="w-full"
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Cloudflare Worker, Hyperdrive & Supabase Action Testers (Secrets/Tokens/Connection Strings Omitted from Display) */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {/* Cloudflare Worker Tester */}
+                <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-white">
+                      Cloudflare Worker API Tester
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+                      {cfWorkerConfigured ? 'Server Proxy Ready' : 'Standby'}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {(['script', 'image', 'video'] as const).map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setCfRequestType(t)}
+                        className={`min-h-[34px] px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase border ${
+                          cfRequestType === t
+                            ? 'bg-amber-500 text-slate-950 border-amber-400'
+                            : 'bg-slate-900 text-slate-300 border-slate-800'
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={cfLoading}
+                      onClick={() => handleCloudflareWorkerCall()}
+                      className="min-h-[36px] px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-bold"
+                    >
+                      {cfLoading ? 'Testing Worker...' : `Test generateWithAPI("${cfRequestType}")`}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={cfVerifyLoading}
+                      onClick={handleVerifyCloudflareToken}
+                      className="min-h-[36px] px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-slate-950 text-xs font-bold"
+                    >
+                      {cfVerifyLoading ? 'Verifying...' : 'Verify Edge Status'}
+                    </button>
+                  </div>
+                  {cfVerifyResult && (
+                    <p className="text-[11px] font-mono text-emerald-300">
+                      Status: {cfVerifyResult.statusText}
+                    </p>
+                  )}
+                  {cfResult && (
+                    <p className="text-[11px] font-mono text-sky-300 break-words">
+                      {cfResult.ok
+                        ? `OK (${cfResult.type} · ${cfResult.elapsedMs}ms)`
+                        : cfResult.error}
+                    </p>
+                  )}
+                </div>
+
+                {/* Cloudflare Hyperdrive Tester (No Connection String Displayed) */}
+                <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-white">
+                      Cloudflare Hyperdrive Pool
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">
+                      Binding: HYPERDRIVE
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {HYPERDRIVE_CONNECTION_PRESETS.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => {
+                          setHyperdriveConfigName(preset.configName);
+                          setHyperdriveConnectionString(preset.connectionString);
+                          setHyperdriveResult(null);
+                        }}
+                        className={`min-h-[32px] px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${
+                          hyperdriveConfigName === preset.configName
+                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
+                            : 'bg-slate-900 text-slate-300 border-slate-800'
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    id="hyperdrive-config-name"
+                    type="text"
+                    value={hyperdriveConfigName}
+                    onChange={(e) => setHyperdriveConfigName(e.target.value)}
+                    className="w-full min-h-[36px] bg-slate-900 border border-slate-800 rounded-xl px-3 py-1 text-xs font-mono text-emerald-300"
+                  />
+                  {(() => {
+                    const parsed = parseHyperdriveConnectionString(hyperdriveConnectionString);
+                    void parsed;
+                    return null;
+                  })()}
+                  <button
+                    type="button"
+                    disabled={hyperdriveLoading}
+                    onClick={handleCreateHyperdrive}
+                    className="min-h-[36px] px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 text-xs font-black"
+                  >
+                    {hyperdriveLoading ? 'Validating Pool...' : 'Validate Hyperdrive Pool'}
+                  </button>
+                  {hyperdriveResult && (
+                    <p className="text-[11px] font-mono text-emerald-300 break-words">
+                      {hyperdriveResult.ok
+                        ? `Ready: ${hyperdriveResult.configName}`
+                        : hyperdriveResult.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Supabase Integration Tester (No Keys or Connection Strings Displayed) */}
+                <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-white">
+                      Supabase Project Sync Tester
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+                      Server Isolated
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    I-verify ang koneksyon sa Supabase at i-sync ang kasalukuyang project metadata.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={supabaseVerifyLoading}
+                      onClick={handleVerifySupabase}
+                      className="min-h-[36px] px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-slate-950 text-xs font-black"
+                    >
+                      {supabaseVerifyLoading ? 'Verifying...' : 'Verify Supabase'}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={hyperdriveLoading}
+                      onClick={handleBindSupabaseToHyperdrive}
+                      className="min-h-[36px] px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 text-xs font-bold"
+                    >
+                      Bind to Hyperdrive
+                    </button>
+                    <button
+                      type="button"
+                      disabled={supabaseSyncLoading}
+                      onClick={handleSyncActiveProjectToSupabase}
+                      className="min-h-[36px] px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white text-xs font-bold"
+                    >
+                      {supabaseSyncLoading ? 'Syncing...' : 'Sync Project'}
+                    </button>
+                  </div>
+                  {supabaseVerifyResult && (
+                    <p className="text-[11px] font-mono text-emerald-300">
+                      Status: {supabaseVerifyResult.restStatus}
+                    </p>
+                  )}
+                  {supabaseSyncResult && (
+                    <p className="text-[11px] font-mono text-sky-300">
+                      {supabaseSyncResult.message}
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleCopyText(
+                        'Supabase CLI Setup Commands',
+                        formatSupabaseCliSetupCommands(supabaseProjectRef)
+                      )
+                    }
+                    className="text-[10px] font-mono text-slate-400 hover:text-emerald-300 underline"
+                  >
+                    Copy CLI Setup Commands ({SUPABASE_CLI_SETUP_COMMANDS.length} steps)
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            {/* ==================== SEKSYON 7: EXPO SDK 58.0.0 NATIVE MODULE & DEVICE MATRIX ==================== */}
+            <section
+              data-testid="expo-sdk-panel"
+              className="p-5 bg-slate-900/90 border border-slate-800 rounded-2xl space-y-4"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-bold">
+                    Seksyon 7 · Mobile &amp; Native Module Matrix
+                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-md bg-emerald-500 text-slate-950 font-mono text-[11px] font-black uppercase">
+                      Expo SDK 58.0.0 ({EXPO_SDK_COMPATIBILITY_MATRIX.length} Modules)
+                    </span>
+                    <h2 className="text-base sm:text-lg font-black text-white">
+                      Expo Native Module Compatibility &amp; Live Web Device Bridge
+                    </h2>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    data-testid="expo-load-contacts-btn"
+                    onClick={handleLoadExpoContacts}
+                    className="min-h-[36px] px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black"
+                  >
+                    Load Cast Contacts ({expoContacts.length})
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="expo-capture-camera-btn"
+                    onClick={handleCaptureExpoCameraFrame}
+                    className="min-h-[36px] px-3 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-black"
+                  >
+                    Capture Camera Frame ({expoCameraFacing})
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="expo-apply-gyro-btn"
+                    onClick={handleApplyGyroscopeMotion}
+                    className="min-h-[36px] px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black"
+                  >
+                    Apply Gyroscope Motion
+                  </button>
+                </div>
+              </div>
+
+              {expoContacts.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                  {expoContacts.map((ct) => (
+                    <div
+                      key={ct.id}
+                      className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2"
+                    >
+                      <div>
+                        <span className="block font-bold text-white">{ct.name}</span>
+                        <span className="block text-[10px] text-slate-400">{ct.role}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleLockContactAsCharacter(ct)}
+                        className="px-2 py-1 rounded bg-emerald-600/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold"
+                      >
+                        Lock Cast
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 max-h-56 overflow-y-auto pr-1">
+                {EXPO_SDK_COMPATIBILITY_MATRIX.map((mod) => (
+                  <div
+                    key={mod.expoSdkVersion}
+                    className="p-2.5 rounded-xl bg-slate-950 border border-slate-800/90 space-y-1 text-[11px]"
+                  >
+                    <div className="flex items-center justify-between gap-1 font-mono">
+                      <span className="font-bold text-emerald-300 truncate">
+                        Expo SDK {mod.expoSdkVersion}
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-900 text-amber-300 shrink-0">
+                        RN {mod.reactNativeVersion} · React {mod.reactVersion}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-300 leading-snug">
+                      Node {mod.minNodeVersion} · Android {mod.androidMinVersion} (Target SDK {mod.targetSdkVersion}) · iOS {mod.iosMinVersion}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
           </div>
         )}
       </main>
@@ -6059,16 +5048,23 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
             : 'bg-[#0e111a]/95 border-slate-800'
         }`}
       >
-        <div className="max-w-xl mx-auto grid grid-cols-6 gap-1">
+        <div
+          className={`max-w-2xl mx-auto grid gap-1 ${
+            isDeveloperMode ? 'grid-cols-7' : 'grid-cols-6'
+          }`}
+        >
           {(
             [
-              { id: 'home', label: 'Home', icon: Home },
-              { id: 'catalog', label: 'Catalog', icon: Film },
-              { id: 'projects', label: 'Projects', icon: FolderKanban },
-              { id: 'studio', label: 'Studio', icon: Clapperboard },
-              { id: 'tools', label: 'Tools & FX', icon: Wand2 },
-              { id: 'settings', label: 'Settings', icon: Settings },
-            ] as const
+              { id: 'home' as const, label: 'Home', icon: Home },
+              { id: 'catalog' as const, label: 'Catalog', icon: Film },
+              { id: 'projects' as const, label: 'Projects', icon: FolderKanban },
+              { id: 'studio' as const, label: 'Studio', icon: Clapperboard },
+              { id: 'tools' as const, label: 'Tools & FX', icon: Wand2 },
+              { id: 'settings' as const, label: 'Settings', icon: Settings },
+              ...(isDeveloperMode
+                ? [{ id: 'developer' as const, label: 'Developer', icon: Layers }]
+                : []),
+            ]
           ).map((item) => {
             const Icon = item.icon;
             const active = bottomTab === item.id;
@@ -6076,10 +5072,13 @@ export const AiDramaStudio: React.FC<AiDramaStudioProps> = ({ onSwitchToRenderBa
               <button
                 key={item.id}
                 type="button"
+                data-testid={`bottom-nav-${item.id}`}
                 onClick={() => setBottomTab(item.id)}
                 className={`min-h-[50px] rounded-xl flex flex-col items-center justify-center text-[11px] font-bold transition-colors ${
                   active
-                    ? 'bg-rose-600/15 text-rose-500 border border-rose-500/30'
+                    ? item.id === 'developer'
+                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                      : 'bg-rose-600/15 text-rose-500 border border-rose-500/30'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
